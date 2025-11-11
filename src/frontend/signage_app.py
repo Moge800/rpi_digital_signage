@@ -11,18 +11,27 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.plc.plc_client import get_plc_client
+from backend.plc.plc_client import get_plc_client, get_use_plc
 from backend.utils import get_refresh_interval
+from backend.logging import app_logger as logger
 
 REFRESH_INTERVAL = get_refresh_interval()
+USE_PLC = get_use_plc()
+if USE_PLC:
 
-if False:  # まだデバッグ中
-    client = get_plc_client()
+    @st.cache_resource
+    def cache_plc_client():
+        return get_plc_client()
+
+    client = cache_plc_client()
     try:
         words = client.read_words("D100", size=10)
         bits = client.read_bits("M100", size=10)
     except Exception as e:
-        print(f"PLCからのデータ取得に失敗: {e}")
+        st.error(f"PLCからのデータ取得に失敗: {e}")  # UI上にエラー表示
+        logger.error(f"PLC read error: {e}")  # ログファイルに記録
+else:
+    pass
 
 
 # --------------------------
@@ -185,12 +194,12 @@ data = get_production_data()
 col_head_l, col_head_r = st.columns([3, 1])
 with col_head_l:
     st.markdown(
-        f"<div class='header-title'>{data['line_name']} 生産進捗</div>",
+        f"<div class='header-title'>{data.line_name} 生産進捗</div>",
         unsafe_allow_html=True,
     )
 with col_head_r:
     st.markdown(
-        f"<div class='header-time'>{data['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}</div>",
+        f"<div class='header-time'>{data.timestamp.strftime('%Y-%m-%d %H:%M:%S')}</div>",
         unsafe_allow_html=True,
     )
 
@@ -206,10 +215,10 @@ with col_left:
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<div class='kpi-value-big'>{data['actual']:,d} / {data['plan']:,d}</div>",
+        f"<div class='kpi-value-big'>{data.actual:,d} / {data.plan:,d}</div>",
         unsafe_allow_html=True,
     )
-    progress = min(1.0, data["actual"] / data["plan"]) if data["plan"] else 0
+    progress = min(1.0, data.actual / data.plan) if data.plan else 0
     st.progress(progress)
     st.markdown(
         f"<div class='kpi-sub'>進捗率：{progress*100:,.1f}%</div>",
@@ -219,14 +228,14 @@ with col_left:
 # ---- 右：残り時間 ＋ ステータス ----
 with col_right:
     st.markdown("<div class='kpi-label'>残り生産時間</div>", unsafe_allow_html=True)
-    h = data["remain_min"] // 60
-    m = data["remain_min"] % 60
+    h = data.remain_min // 60
+    m = data.remain_min % 60
     st.markdown(
         f"<div class='kpi-value-big'>{h:02d}時間{m:02d}分</div>",
         unsafe_allow_html=True,
     )
 
-    if data["alarm"]:
+    if data.alarm:
         status_class = "status-alarm"
         status_text = "⚠ 異常発生"
     elif progress >= 1.0:
@@ -274,9 +283,9 @@ st.plotly_chart(gauge_fig, width="stretch")
 
 # ===== 下段：異常バー =====
 st.markdown("---")
-if data["alarm"]:
+if data.alarm:
     st.markdown(
-        f"<div class='alarm-bar'>【異常】{data['alarm_msg']}</div>",
+        f"<div class='alarm-bar'>【異常】{data.alarm_msg}</div>",
         unsafe_allow_html=True,
     )
 else:
@@ -289,7 +298,3 @@ st.markdown(
     "<div class='footer'>更新間隔：10秒 / Powered by Streamlit</div>",
     unsafe_allow_html=True,
 )
-
-
-if __name__ == "__main__":
-    print("please run [run_streamlit.ps1]")
