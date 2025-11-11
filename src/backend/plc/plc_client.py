@@ -2,8 +2,8 @@ import time
 from functools import wraps
 from pymcprotocol import Type3E
 from .base import BasePLCClient
-from ...config.settings import Settings
-from ..logging import plc_logger as logger
+from config.settings import Settings
+from backend.logging import plc_logger as logger
 
 
 def auto_reconnect(func):
