@@ -11,12 +11,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.plc.plc_client import get_plc_client, get_use_plc
-from backend.utils import get_refresh_interval
+from backend.plc.plc_client import get_plc_client
+from backend.utils import get_refresh_interval, get_use_plc
 from backend.logging import app_logger as logger
 
 REFRESH_INTERVAL = get_refresh_interval()
 USE_PLC = get_use_plc()
+
 if USE_PLC:
 
     @st.cache_resource
