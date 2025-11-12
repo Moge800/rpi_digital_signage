@@ -227,11 +227,11 @@ col_left, col_right = st.columns([2, 1])
 # ---- 左：生産数量 ----
 with col_left:
     st.markdown(
-        "<div class='kpi-label'>投入数/生産数量</div>",
+        "<div class='kpi-label'>投入数/生産数量 [残りPL数]</div>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<div class='kpi-value-big'>{data.actual:,d} / {data.plan:,d}</div>",
+        f"<div class='kpi-value-big'>{data.actual:,d} / {data.plan:,d} [{data.remain_pallet:,.1f}PL]</div>",
         unsafe_allow_html=True,
     )
     progress = min(1.0, data.actual / data.plan) if data.plan else 0
