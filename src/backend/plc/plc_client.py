@@ -11,7 +11,7 @@ def auto_reconnect(func):
     def wrapper(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except Exception as e:
+        except (ConnectionError, OSError, TimeoutError) as e:
             logger.error(f"Error in {func.__name__}: {e}")
             if getattr(self.settings, "AUTO_RECONNECT", False):
                 logger.info("Attempting to reconnect...")
@@ -44,11 +44,22 @@ def debug_dummy_read(func):
 
 
 class PLCClient(BasePLCClient):
+    _instance: "PLCClient | None" = None
+
     def __init__(self, settings: Settings):
         self.plc = Type3E()
         self.settings = settings
         self.connected = False
         self.connect()
+
+    @classmethod
+    def get_instance(cls, settings: Settings | None = None) -> "PLCClient":
+        """シングルトンインスタンスを取得"""
+        if cls._instance is None:
+            if settings is None:
+                settings = Settings()
+            cls._instance = cls(settings)
+        return cls._instance
 
     def connect(self):
         try:
@@ -57,7 +68,7 @@ class PLCClient(BasePLCClient):
                 f"Connected to PLC at {self.settings.PLC_IP}:{self.settings.PLC_PORT}"
             )
             self.connected = True
-        except Exception as e:
+        except (ConnectionError, OSError, TimeoutError) as e:
             logger.error(f"Failed to connect to PLC: {e}")
             self.connected = False
 
@@ -65,7 +76,7 @@ class PLCClient(BasePLCClient):
         try:
             self.plc.close()
             logger.info("Disconnected from PLC")
-        except Exception as e:
+        except (ConnectionError, OSError) as e:
             logger.error(f"Failed to disconnect from PLC: {e}")
         finally:
             self.connected = False
@@ -81,7 +92,7 @@ class PLCClient(BasePLCClient):
                 if self.connected:
                     logger.info("Reconnect succeeded.")
                     return True
-            except Exception as e:
+            except (ConnectionError, OSError, TimeoutError) as e:
                 logger.warning(f"Reconnect attempt {i+1} failed: {e}")
             time.sleep(self.settings.RECONNECT_DELAY)
         logger.error("Failed to reconnect after retries.")
@@ -104,19 +115,13 @@ class PLCClient(BasePLCClient):
         return data
 
 
-_client: PLCClient | None = None
-
-
 def get_plc_client() -> PLCClient:
-    global _client
-    if _client is None:
-        settings = Settings()  # type: ignore  # .envから読み込む
-        _client = PLCClient(settings)
-    return _client
+    """PLCクライアントのシングルトンインスタンスを取得"""
+    return PLCClient.get_instance()
 
 
 if __name__ == "__main__":
-    settings = Settings()  # type: ignore  # .envから読み込む
+    settings = Settings()
     client = PLCClient(settings)
 
     try:
