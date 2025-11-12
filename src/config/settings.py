@@ -2,15 +2,6 @@ import os
 from pydantic import IPvAnyAddress, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# .envファイルの存在チェック（起動時に確認）
-if not os.path.exists(".env"):
-    raise FileNotFoundError(
-        "\n❌ .env file not found.\n"
-        "Please copy .env.example to .env and configure it:\n"
-        "  cp .env.example .env  (Linux/Mac)\n"
-        "  copy .env.example .env  (Windows)\n"
-    )
-
 
 class Settings(BaseSettings):
     PLC_IP: IPvAnyAddress
@@ -25,3 +16,14 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    def __init__(self, **kwargs):
+        # .envファイルの存在チェック
+        if not os.path.exists(".env") and not kwargs:
+            raise FileNotFoundError(
+                "\n❌ .env file not found.\n"
+                "Please copy .env.example to .env and configure it:\n"
+                "  cp .env.example .env  (Linux/Mac)\n"
+                "  Copy-Item .env.example .env  (Windows)\n"
+            )
+        super().__init__(**kwargs)
