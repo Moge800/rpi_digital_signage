@@ -64,7 +64,9 @@ class ProductionConfigManager:
             FileNotFoundError: 対応するJSONファイルが見つからない場合
             ValueError: JSON形式が不正な場合
         """
-        config_dir = Path(__file__).parent.parent / "config" / "production_types"
+        # プロジェクトルート/config/production_types/ を参照
+        project_root = Path(__file__).parent.parent.parent
+        config_dir = project_root / "config" / "production_types"
         config_file = config_dir / f"{self._line_name}.json"
 
         if not config_file.exists():
