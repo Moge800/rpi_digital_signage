@@ -3,7 +3,6 @@ import random
 from datetime import datetime
 import plotly.graph_objects as go
 import streamlit as st
-from schemas import ProductionData
 from streamlit_autorefresh import st_autorefresh
 
 import sys
@@ -11,6 +10,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from schemas import ProductionData
 from backend.plc.plc_client import get_plc_client
 from backend.utils import get_refresh_interval, get_use_plc
 from backend.logging import app_logger as logger

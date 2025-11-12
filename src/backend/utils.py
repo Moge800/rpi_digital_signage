@@ -1,7 +1,7 @@
 import os
 import dotenv
 from backend.plc.plc_client import PLCClient
-from frontend.schemas import ProductionData
+from schemas import ProductionData
 from typing import Literal, cast
 
 dotenv.load_dotenv()
