@@ -1,7 +1,6 @@
 """ProductionConfigManagerのテスト"""
 
 import os
-from pathlib import Path
 
 import pytest
 
@@ -65,7 +64,8 @@ class TestProductionConfigManager:
 
     def test_config_file_path_resolution(self, project_root_path):
         """設定ファイルのパス解決が正しいか"""
-        manager = ProductionConfigManager()
+        # ProductionConfigManagerが正常に初期化できることを確認
+        ProductionConfigManager()
         expected_path = (
             project_root_path / "config" / "production_types" / "dev_line_1.json"
         )
