@@ -37,7 +37,9 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     )
 
 
-def get_production_timestamp(client: PLCClient, head_device: str = "SD210") -> datetime:
+def fetch_production_timestamp(
+    client: PLCClient, head_device: str = "SD210"
+) -> datetime:
     """PLCから生産データのタイムスタンプを取得
 
     三菱PLCの日時データはBCD形式で格納されている。
@@ -83,8 +85,20 @@ def get_production_timestamp(client: PLCClient, head_device: str = "SD210") -> d
         return datetime.now()
 
 
-def fetch_plc_data(client: PLCClient) -> ProductionData:
-    """PLCからのデータ取得（ダミー実装）"""
+def fetch_production_data(client: PLCClient) -> ProductionData:
+    """PLCから生産データを一括取得
+
+    将来的な実装例:
+    - fetch_production_timestamp() でタイムスタンプ取得
+    - 各デバイスから計画数、実績数、アラーム情報を取得
+    - ProductionDataに統合して返す
+    """
+    # TODO: 実際のPLCデバイスから取得する実装
+    # timestamp = fetch_production_timestamp(client)
+    # plan = client.read_words("D100", size=1)[0]
+    # actual = client.read_words("D101", size=1)[0]
+    # alarm = client.read_bits("M100", size=1)[0]
+
     # ここにPLCからのデータ取得ロジックを実装
     return ProductionData(
         line_name="LINE_1",
