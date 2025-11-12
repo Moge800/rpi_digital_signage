@@ -31,14 +31,8 @@ ignore = ["E402"]  # sys.path操作後のインポートを許可
 
 [dependency-groups]
 dev = [
-    "pytest",
-    "black",
-    "ruff",
-]
-test = [
-    "pytest",
-]
-lint = [
-    "ruff",
-    "black",
+    "pytest>=9.0.0",
+    "pytest-cov>=6.0.0",  # カバレッジ計測
+    "black>=24.0.0",
+    "ruff>=0.8.0",
 ]

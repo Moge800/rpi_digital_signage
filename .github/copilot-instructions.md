@@ -140,6 +140,53 @@ os.system("streamlit run app.py")
 - pytest使用
 - PLC通信テストは`DEBUG_DUMMY_READ=true`で実施
 
+### テスト駆動開発(TDD)の推奨
+**新機能追加時は必ずテストも同時作成する**
+
+#### テストの配置
+```
+tests/
+├── config/           # 設定管理のテスト
+├── backend/         # バックエンドロジックのテスト
+│   └── plc/        # PLC通信のテスト(モック使用)
+└── schemas/         # データモデルのテスト
+```
+
+#### テスト作成ルール
+1. **新しい関数を追加** → 対応するテストを`tests/`に作成
+2. **計算ロジック変更** → 既存テストを更新 + 新ケース追加
+3. **バグ修正** → 再現テストを追加してから修正
+
+#### PLC通信テストの注意
+- 実機PLC接続は不要(モックを使用)
+```python
+from unittest.mock import MagicMock, patch
+
+@patch("backend.plc.plc_client.Type3E")
+def test_plc_read(mock_type3e):
+    mock_plc = MagicMock()
+    mock_plc.batchread_wordunits.return_value = [100, 200]
+    mock_type3e.return_value = mock_plc
+    # テスト実行...
+```
+
+#### テスト実行コマンド
+```bash
+# 全テスト実行
+pytest tests/ -v
+
+# 特定のテストファイルのみ
+pytest tests/backend/test_utils.py -v
+
+# カバレッジ計測
+pytest --cov=src tests/
+```
+
+#### テストの命名規則
+- ファイル: `test_*.py`
+- クラス: `Test*` (例: `TestProductionConfigManager`)
+- 関数: `test_*` (例: `test_calculate_remain_pallet_basic`)
+
 ## デプロイ
 - Raspberry Pi上で実行想定
 - `uv sync`で依存関係インストール
