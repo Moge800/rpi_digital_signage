@@ -18,7 +18,7 @@
     "production_type": 機種番号,
     "name": "機種名",
     "fully": パレット積載数,
-    "production_rate_per_minute": 1分あたりの生産数
+    "seconds_per_product": 1個あたりの生産時間(秒, float)
   }
 }
 ```
@@ -40,25 +40,27 @@
 ## サンプル
 
 ### line_1.json (供給装置)
+
 ```json
 {
   "1": {
     "production_type": 1,
     "name": "機種A",
     "fully": 2800,
-    "production_rate_per_minute": 50
+    "seconds_per_product": 1.2
   }
 }
 ```
 
 ### line_2.json (別ライン)
+
 ```json
 {
   "1": {
     "production_type": 1,
     "name": "別機種X",
     "fully": 4000,
-    "production_rate_per_minute": 80
+    "seconds_per_product": 0.75
   }
 }
 ```
@@ -66,6 +68,7 @@
 ## 注意事項
 
 - 機種番号は0-15の範囲
-- `fully`と`production_rate_per_minute`は1以上
+- `fully`は1以上の整数
+- `seconds_per_product`は0より大きいfloat値 (例: 50個/分 = 60÷50 = 1.2秒/個)
 - ファイル名は`LINE_NAME`と正確に一致させる
 - UTF-8エンコーディングで保存

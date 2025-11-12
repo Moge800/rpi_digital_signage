@@ -26,7 +26,7 @@ REFRESH_INTERVAL = get_refresh_interval()
 USE_PLC = get_use_plc()
 
 # ダミーデータ生成用の定数
-PRODUCTION_RATE_PER_MINUTE = 50  # 1分あたりの生産数
+SECONDS_PER_PRODUCT = 1.2  # 1個あたりの生産時間(秒) (50個/分 = 1.2秒/個)
 ALARM_THRESHOLD = 8000  # アラーム判定の閾値
 ALARM_PROBABILITY = 0.5  # アラーム発生確率
 
@@ -54,7 +54,8 @@ else:
 def get_production_data() -> ProductionData:
     plan = 45000
     actual = random.randint(0, plan)
-    remain_min = max(0, int((plan - actual) / PRODUCTION_RATE_PER_MINUTE))
+    remain_seconds = max(0, (plan - actual) * SECONDS_PER_PRODUCT)
+    remain_min = int(remain_seconds / 60.0)
     alarm_flag = actual > ALARM_THRESHOLD and random.random() < ALARM_PROBABILITY
     alarm_msg = "装置異常発生中" if alarm_flag else ""
 

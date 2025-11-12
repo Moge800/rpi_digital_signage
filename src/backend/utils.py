@@ -73,7 +73,8 @@ def calculate_remain_minutes(plan: int, actual: int, production_type: int) -> fl
     config = config_manager.get_config(production_type)
 
     remain = plan - actual
-    return remain / config.production_rate_per_minute
+    remain_seconds = remain * config.seconds_per_product  # 残り個数 × 1個あたりの秒数
+    return remain_seconds / 60.0  # 秒を分に変換
 
 
 def fetch_production_timestamp(

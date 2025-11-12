@@ -3,18 +3,18 @@
     "production_type": 0,
     "name": "未設定",
     "fully": 1,
-    "production_rate_per_minute": 1
+    "seconds_per_product": 60.0
   },
   "1": {
     "production_type": 1,
     "name": "別機種X",
     "fully": 4000,
-    "production_rate_per_minute": 80
+    "seconds_per_product": 0.75
   },
   "2": {
     "production_type": 2,
     "name": "別機種Y",
     "fully": 3500,
-    "production_rate_per_minute": 70
+    "seconds_per_product": 0.857
   }
 }

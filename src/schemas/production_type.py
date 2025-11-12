@@ -7,7 +7,7 @@ class ProductionTypeConfig(BaseModel):
     production_type: int = Field(ge=0, le=15, description="機種番号 (0-15)")
     name: str = Field(description="機種名")
     fully: int = Field(gt=0, description="1パレットあたりの積載数")
-    production_rate_per_minute: int = Field(gt=0, description="1分あたりの生産数")
+    seconds_per_product: float = Field(gt=0, description="1個あたりの生産時間(秒)")
 
     model_config = {
         "json_schema_extra": {
@@ -15,7 +15,7 @@ class ProductionTypeConfig(BaseModel):
                 "production_type": 1,
                 "name": "機種A",
                 "fully": 2800,  # 140個 × 20段
-                "production_rate_per_minute": 50,
+                "seconds_per_product": 1.2,  # 1個あたり1.2秒 (50個/分)
             }
         }
     }
