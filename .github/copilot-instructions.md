@@ -1,0 +1,182 @@
+# GitHub Copilot Instructions
+
+## プロジェクト概要
+Raspberry Pi向けのデジタルサイネージシステム。三菱電機製PLC(MELSEC)からリアルタイムで生産データを取得し、Streamlitで視覚的に表示する。
+
+## 技術スタック
+- **Python**: 3.13+
+- **パッケージマネージャ**: uv
+- **フロントエンド**: Streamlit 1.51.0, Plotly
+- **PLC通信**: pymcprotocol (Type3E)
+- **データ検証**: Pydantic 2.x, pydantic-settings
+- **環境変数**: python-dotenv
+- **開発ツール**: Black, Ruff, pytest
+
+## プロジェクト構造
+```
+src/
+├── backend/          # バックエンドロジック
+│   ├── plc/         # PLC通信層
+│   ├── logging/     # ロギング設定
+│   └── utils.py     # ヘルパー関数
+├── frontend/        # Streamlit UI
+├── config/          # 設定管理
+└── schemas/         # Pydanticデータモデル
+```
+
+## コーディング規約
+
+### 1. 型ヒントは必須
+```python
+# Good
+def get_production_data() -> ProductionData:
+    return ProductionData(...)
+
+# Bad
+def get_production_data():
+    return ProductionData(...)
+```
+
+### 2. 環境変数の扱い
+- `.env`ファイルは必須(`.env.example`をコピー)
+- Pydantic Settingsで型安全に管理
+- `os.getenv()`の直接使用は`utils.py`のヘルパー関数経由で
+
+### 3. エラーハンドリング
+- `Exception`の汎用捕捉は避ける
+- 具体的な例外を指定: `ConnectionError`, `OSError`, `TimeoutError`など
+```python
+# Good
+except (ConnectionError, OSError) as e:
+    logger.error(f"Connection failed: {e}")
+
+# Bad
+except Exception as e:
+    pass
+```
+
+### 4. マジックナンバーは定数化
+```python
+# Good
+PRODUCTION_RATE_PER_MINUTE = 50
+remain_min = (plan - actual) / PRODUCTION_RATE_PER_MINUTE
+
+# Bad
+remain_min = (plan - actual) / 50
+```
+
+### 5. グローバル変数は避ける
+- シングルトンが必要な場合はクラス属性を使用
+- `global`キーワードは使わない
+
+### 6. インポート順序
+```python
+# 標準ライブラリ
+import os
+import sys
+
+# サードパーティ
+from pydantic import BaseModel
+import streamlit as st
+
+# ローカル
+from schemas import ProductionData
+from backend.plc.plc_client import get_plc_client
+```
+
+### 7. ロギング
+- 共通ロガーを使用(`backend.logging`)
+- ログレベル: DEBUG, INFO, WARNING, ERROR
+- ファイルとコンソール両方に出力
+```python
+from backend.logging import plc_logger as logger
+
+logger.info("Connected to PLC")
+logger.error(f"Failed to read: {e}")
+```
+
+### 8. dotenvの読み込み
+```python
+# Good
+from dotenv import load_dotenv
+load_dotenv()
+
+# Bad
+import dotenv
+dotenv.load_dotenv()
+```
+
+### 9. subprocess推奨
+```python
+# Good
+subprocess.run([sys.executable, "-m", "streamlit", "run", "app.py"], check=True)
+
+# Bad
+os.system("streamlit run app.py")
+```
+
+### 10. type: ignoreは最小限に
+- 型を正しく定義すれば不要なはず
+- やむを得ない場合のみ使用し、理由をコメント
+
+## PLC通信の注意点
+- `PLCClient`はシングルトンパターン
+- 自動再接続機能あり(`AUTO_RECONNECT=true`)
+- デバッグ時は`DEBUG_DUMMY_READ=true`でダミーデータ使用可能
+- Type3E固定、IP/ポートは`.env`で設定
+
+## Streamlit特有の考慮事項
+- スクリプト全体が毎回再実行される
+- モジュールレベルの定数定義は推奨(再計算を避ける)
+- `@st.cache_resource`でリソース(PLCクライアント等)をキャッシュ
+- `st_autorefresh`で自動リフレッシュ実装済み
+
+## セキュリティ
+- `.env`はGitにコミットしない(`.gitignore`済み)
+- 機密情報(IP、ポート、ライン名等)は環境変数化
+- ログファイルも`.gitignore`で除外
+
+## テスト
+- pytest使用
+- PLC通信テストは`DEBUG_DUMMY_READ=true`で実施
+
+## デプロイ
+- Raspberry Pi上で実行想定
+- `uv sync`で依存関係インストール
+- `python main.py`または`streamlit run src/frontend/signage_app.py`で起動
+
+## よくある問題と解決策
+
+### インポートエラー
+- `sys.path.insert()`は`signage_app.py`のみで使用
+- 他のモジュールは絶対インポート(`from backend.xxx import yyy`)
+
+### .envが見つからない
+- `.env.example`を`.env`にコピー
+- `Settings()`初期化時にチェックされる
+
+### PLC接続エラー
+- `DEBUG_DUMMY_READ=true`でダミーモード確認
+- IP/ポート設定を`.env`で確認
+- ネットワーク疎通確認
+
+## コード品質
+- Black: フォーマッター(自動整形)
+- Ruff: Linter(静的解析)
+- Pylance: VSCode型チェック
+- 全てセットアップ済み(`.vscode/settings.json`)
+
+## 命名規則
+- クラス: `PascalCase` (例: `PLCClient`, `ProductionData`)
+- 関数/変数: `snake_case` (例: `get_plc_client`, `remain_min`)
+- 定数: `UPPER_SNAKE_CASE` (例: `REFRESH_INTERVAL`, `USE_PLC`)
+- プライベート: `_leading_underscore` (例: `_instance`)
+
+## ドキュメント
+- Docstring: Google Style
+- 型ヒントで大部分は自己文書化
+- 複雑なロジックにはインラインコメント
+
+---
+
+**このプロジェクトは学習目的で開発されています。質問や改善提案は歓迎します！**
