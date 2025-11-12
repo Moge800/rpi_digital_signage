@@ -38,7 +38,7 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     )
 
 
-def remain_pallet_calculation(
+def calculate_remain_pallet(
     plan: int, actual: int, production_type: int, decimals: int | None = 2
 ) -> float:
     """残りパレット数を計算する
@@ -157,7 +157,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
 
     # 機種設定を使って計算
     remain_min = calculate_remain_minutes(plan, actual, production_type)
-    remain_pallet = remain_pallet_calculation(plan, actual, production_type)
+    remain_pallet = calculate_remain_pallet(plan, actual, production_type)
 
     alarm = False
     alarm_msg = ""
