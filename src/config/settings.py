@@ -27,3 +27,29 @@ class Settings(BaseSettings):
                 "  Copy-Item .env.example .env  (Windows)\n"
             )
         super().__init__(**kwargs)
+
+
+class PLCDeviceList(BaseSettings):
+    TIME_DEVICE: str = "D210"
+    PRODUCTION_TYPE_DEVICE: str = ""
+    PLAN_DEVICE: str = ""
+    ACTUAL_DEVICE: str = ""
+    ALARM_DEVICE: str = ""
+    IN_OPERATING_DEVICE: str = ""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    def __init__(self, **kwargs):
+        # .envファイルの存在チェック
+        if not os.path.exists(".env") and not kwargs:
+            raise FileNotFoundError(
+                "\n❌ .env file not found.\n"
+                "Please copy .env.example to .env and configure it:\n"
+                "  cp .env.example .env  (Linux/Mac)\n"
+                "  Copy-Item .env.example .env  (Windows)\n"
+            )
+        super().__init__(**kwargs)
