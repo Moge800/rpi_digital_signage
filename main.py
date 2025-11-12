@@ -1,5 +1,8 @@
+import os
+
+
 def main():
-    print("Hello from rpi-digital-signage!")
+    os.system("streamlit run src/frontend/signage_app.py")
 
 
 if __name__ == "__main__":
