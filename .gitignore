@@ -22,6 +22,10 @@ Thumbs.db
 *.log
 logs/*
 
-#envirion files
+# envirion files
 *.env
 !.env.example
+
+# config/production_types/
+*.json
+!config/production_types/example*
