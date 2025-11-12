@@ -57,6 +57,9 @@ def fetch_production_timestamp(
     Returns:
         datetime: PLCから取得した日時
     """
+    if head_device == "":
+        raise ValueError("head_device cannot be an empty string")
+
     try:
         # SD210から3ワード読み取り
         data = client.read_words(head_device, size=3)
