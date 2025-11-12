@@ -1,9 +1,19 @@
 [project]
 name = "rpi-digital-signage"
 version = "0.1.0"
-description = "Add your description here"
+description = "Raspberry Pi向けデジタルサイネージ - PLC生産データ表示システム"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    {name = "Moge800", email = "your.email@example.com"}
+]
+keywords = ["raspberry-pi", "plc", "streamlit", "digital-signage", "production-monitoring"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Manufacturing",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.13",
+]
 dependencies = [
     "plotly>=6.4.0",
     "pydantic-settings>=2.12.0",
