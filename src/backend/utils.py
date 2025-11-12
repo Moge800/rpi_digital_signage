@@ -67,14 +67,15 @@ def calculate_remain_minutes(plan: int, actual: int, production_type: int) -> fl
         production_type: 機種番号
 
     Returns:
-        float: 残り時間(分)
+        float: 残り時間(分, 小数点第2位まで)
     """
     config_manager = ProductionConfigManager()
     config = config_manager.get_config(production_type)
 
     remain = plan - actual
     remain_seconds = remain * config.seconds_per_product  # 残り個数 × 1個あたりの秒数
-    return remain_seconds / 60.0  # 秒を分に変換
+    remain_minute = round(remain_seconds / 60.0, 2)
+    return remain_minute
 
 
 def fetch_production_timestamp(
