@@ -16,6 +16,9 @@ dependencies = [
 [tool.mypy]
 ignore_missing_imports = true
 
+[tool.ruff.lint]
+ignore = ["E402"]  # sys.path操作後のインポートを許可
+
 [dependency-groups]
 dev = [
     "pytest",
