@@ -38,44 +38,51 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     )
 
 
-def remain_pallet_calculation(plan: int, actual: int, production_type: int) -> float:
+def remain_pallet_calculation(
+    plan: int, actual: int, production_type: int, decimals: int | None = 2
+) -> float:
     """残りパレット数を計算する
 
     Args:
         plan: 計画生産数
         actual: 実績生産数
         production_type: 機種番号 (0-15)
+        decimals: 小数点以下の桁数 (Noneの場合は丸めない)
 
     Returns:
-        float: 残りパレット数(小数点第2位まで)
+        float: 残りパレット数
     """
     config_manager = ProductionConfigManager()
     config = config_manager.get_config(production_type)
 
     remaining_units = max(0, plan - actual)
-    remain_pallet = round(remaining_units / config.fully, 2)
+    remain_pallet = remaining_units / config.fully
 
-    return remain_pallet
+    return round(remain_pallet, decimals) if decimals is not None else remain_pallet
 
 
-def calculate_remain_minutes(plan: int, actual: int, production_type: int) -> float:
+def calculate_remain_minutes(
+    plan: int, actual: int, production_type: int, decimals: int | None = 2
+) -> float:
     """残り時間(分)を計算
 
     Args:
         plan: 計画数
         actual: 実績数
         production_type: 機種番号
+        decimals: 小数点以下の桁数 (Noneの場合は丸めない)
 
     Returns:
-        float: 残り時間(分, 小数点第2位まで)
+        float: 残り時間(分)
     """
     config_manager = ProductionConfigManager()
     config = config_manager.get_config(production_type)
 
     remain = plan - actual
     remain_seconds = remain * config.seconds_per_product  # 残り個数 × 1個あたりの秒数
-    remain_minute = round(remain_seconds / 60.0, 2)
-    return remain_minute
+    remain_minute = remain_seconds / 60.0
+
+    return round(remain_minute, decimals) if decimals is not None else remain_minute
 
 
 def fetch_production_timestamp(
