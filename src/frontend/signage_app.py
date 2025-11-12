@@ -19,8 +19,16 @@ from backend.plc.plc_client import get_plc_client
 from backend.utils import get_refresh_interval, get_use_plc
 from backend.logging import app_logger as logger
 
+# --------------------------
+#  定数定義
+# --------------------------
 REFRESH_INTERVAL = get_refresh_interval()
 USE_PLC = get_use_plc()
+
+# ダミーデータ生成用の定数
+PRODUCTION_RATE_PER_MINUTE = 50  # 1分あたりの生産数
+ALARM_THRESHOLD = 8000  # アラーム判定の閾値
+ALARM_PROBABILITY = 0.5  # アラーム発生確率
 
 if USE_PLC:
 
@@ -46,8 +54,8 @@ else:
 def get_production_data() -> ProductionData:
     plan = 45000
     actual = random.randint(0, plan)
-    remain_min = max(0, int((plan - actual) / 50))
-    alarm_flag = actual > 8000 and random.random() < 0.5
+    remain_min = max(0, int((plan - actual) / PRODUCTION_RATE_PER_MINUTE))
+    alarm_flag = actual > ALARM_THRESHOLD and random.random() < ALARM_PROBABILITY
     alarm_msg = "装置異常発生中" if alarm_flag else ""
 
     return ProductionData(
