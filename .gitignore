@@ -25,3 +25,7 @@ logs/*
 #envirion files
 *.env
 !.env.example
+
+# GitHub Copilot instructions
+.copilot/
+.github/
