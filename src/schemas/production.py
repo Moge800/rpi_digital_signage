@@ -10,6 +10,7 @@ class ProductionData(BaseModel):
             "example": {
                 "line_name": "NONE",
                 "production_type": 0,
+                "production_name": "機種A",
                 "plan": 45000,
                 "actual": 30000,
                 "in_operating": False,
@@ -23,7 +24,8 @@ class ProductionData(BaseModel):
     )
 
     line_name: str = Field(..., description="ライン名")
-    production_type: int = Field(..., description="生産機種")
+    production_type: int = Field(..., description="生産機種番号")
+    production_name: str = Field(..., description="生産機種名")
     plan: int = Field(..., ge=0, description="計画生産数")
     actual: int = Field(..., ge=0, description="実績生産数")
     in_operating: bool = Field(default=False, description="稼働中フラグ")
@@ -41,6 +43,7 @@ class ProductionData(BaseModel):
         return cls(
             line_name="ERROR",
             production_type=0,
+            production_name="NONE",
             plan=0,
             actual=0,
             in_operating=False,

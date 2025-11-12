@@ -62,6 +62,7 @@ def get_production_data() -> ProductionData:
     return ProductionData(
         line_name=os.getenv("LINE_NAME", "NONAME"),
         production_type=0,
+        production_name="NONE",
         plan=plan,
         actual=actual,
         in_operating=True,
@@ -210,7 +211,7 @@ data = get_production_data()
 col_head_l, col_head_r = st.columns([3, 1])
 with col_head_l:
     st.markdown(
-        f"<div class='header-title'>{data.line_name} 生産進捗</div>",
+        f"<div class='header-title'>{data.line_name} 生産進捗 - {data.production_name}</div>",
         unsafe_allow_html=True,
     )
 with col_head_r:

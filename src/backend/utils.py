@@ -151,6 +151,10 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     actual = 20000
     in_operating = True
 
+    # 機種設定を取得してproduction_nameを解決
+    config_manager = ProductionConfigManager()
+    config = config_manager.get_config(production_type)
+
     # 機種設定を使って計算
     remain_min = calculate_remain_minutes(plan, actual, production_type)
     remain_pallet = remain_pallet_calculation(plan, actual, production_type)
@@ -162,6 +166,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     return ProductionData(
         line_name=line_name,
         production_type=production_type,
+        production_name=config.name,
         plan=plan,
         actual=actual,
         in_operating=in_operating,
