@@ -2,6 +2,7 @@ import os
 from backend.plc.plc_client import PLCClient
 from schemas import ProductionData
 from typing import Literal, cast
+from datetime import datetime
 
 
 def get_use_plc() -> bool:
@@ -34,6 +35,52 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
         Literal["DEBUG", "INFO", "WARNING", "ERROR"],
         level if level in valid_levels else "INFO",
     )
+
+
+def get_production_timestamp(client: PLCClient, head_device: str = "SD210") -> datetime:
+    """PLCから生産データのタイムスタンプを取得
+
+    三菱PLCの日時データはBCD形式で格納されている。
+    SD210から3ワード(YMDhms)を読み取り、datetime型に変換する。
+
+    フォーマット例:
+    - ワード1 (SD210): 0x2511 → 2025年11月
+    - ワード2 (SD211): 0x1314 → 13日14時
+    - ワード3 (SD212): 0x3045 → 30分45秒
+
+    Args:
+        client: PLCクライアント
+        head_device: 日時格納デバイス (デフォルト: SD210)
+
+    Returns:
+        datetime: PLCから取得した日時
+    """
+    try:
+        # SD210から3ワード読み取り
+        data = client.read_words(head_device, size=3)
+
+        # BCD形式を10進数に変換
+        # 例: 0x2511 → "2511" → 年=25, 月=11
+        word1 = f"{data[0]:04x}"
+        Y = int("20" + word1[:2])  # 年: 先頭2桁 (20xx年)
+        M = int(word1[2:])  # 月: 後ろ2桁
+
+        word2 = f"{data[1]:04x}"
+        D = int(word2[:2])  # 日: 先頭2桁
+        h = int(word2[2:])  # 時: 後ろ2桁
+
+        word3 = f"{data[2]:04x}"
+        m = int(word3[:2])  # 分: 先頭2桁
+        s = int(word3[2:])  # 秒: 後ろ2桁
+
+        return datetime(Y, M, D, h, m, s)
+
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        # PLC接続エラーまたはデータ変換エラー時は現在時刻を返す
+        from backend.logging import plc_logger as logger
+
+        logger.warning(f"Failed to get timestamp from PLC: {e}, using system time")
+        return datetime.now()
 
 
 def fetch_plc_data(client: PLCClient) -> ProductionData:
