@@ -161,12 +161,12 @@ pkill -f streamlit
 sudo systemctl restart digital-signage.service
 ```
 
-### Q: 複数台のラズパイにデプロイしたい
+### Q: 複数台のRaspberry Piにデプロイしたい
 
 1. 1台目で完全セットアップ
 2. SDカードイメージをバックアップ
-3. 他のラズパイに同じイメージを焼く
-4. 各ラズパイで `.env` の `PLC_IP` と `LINE_NAME` のみ変更
+3. 他のRaspberry Piに同じイメージを焼く
+4. 各Raspberry Piで `.env` の `PLC_IP` と `LINE_NAME` のみ変更
 
 詳細は [DEPLOY_OFFLINE.md](DEPLOY_OFFLINE.md) の「ゴールデンイメージ作成」を参照
 

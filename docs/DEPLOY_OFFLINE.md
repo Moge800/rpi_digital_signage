@@ -9,7 +9,7 @@
 ## 前提条件
 
 - **開発PC**: インターネット接続可能なWindows環境
-- **ラズパイ**: インターネット接続不可
+- **Raspberry Pi**: インターネット接続不可
 - **転送手段**: USBメモリ、または一時的な内部ネットワーク経由
 
 ---
@@ -255,7 +255,7 @@ sudo systemctl restart digital-signage.service
 **スマホテザリング等で一時的にインターネット接続する場合:**
 
 ```bash
-# ラズパイをスマホテザリングに接続
+# Raspberry Piをスマホテザリングに接続
 # Wi-Fi設定から一時的に接続
 
 # 通常のセットアップスクリプトを実行
@@ -275,7 +275,7 @@ sudo systemctl restart digital-signage.service
 
 1. 1台のRaspberry Piで完全セットアップ
 2. SDカードイメージをバックアップ
-3. 他のラズパイに同じイメージを書き込み
+3. 他のRaspberry Piに同じイメージを書き込み
 4. `.env`の`PLC_IP`だけ個別設定
 
 これで2台目以降は5分で完了します。
