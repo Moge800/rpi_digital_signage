@@ -63,6 +63,7 @@ def get_production_data() -> ProductionData:
         production_type=0,
         plan=plan,
         actual=actual,
+        in_operating=True,
         remain_min=remain_min,
         alarm=alarm_flag,
         alarm_msg=alarm_msg,

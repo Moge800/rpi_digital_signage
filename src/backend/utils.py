@@ -108,6 +108,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
         production_type=1,
         plan=45000,
         actual=30000,
+        in_operating=True,
         remain_min=300,
         alarm=False,
         alarm_msg="",

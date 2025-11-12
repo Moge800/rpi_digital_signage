@@ -12,6 +12,7 @@ class ProductionData(BaseModel):
                 "production_type": 0,
                 "plan": 45000,
                 "actual": 30000,
+                "in_operating": False,
                 "remain_min": 300,
                 "alarm": False,
                 "alarm_msg": "",
@@ -24,6 +25,7 @@ class ProductionData(BaseModel):
     production_type: int = Field(..., description="生産機種")
     plan: int = Field(..., ge=0, description="計画生産数")
     actual: int = Field(..., ge=0, description="実績生産数")
+    in_operating: bool = Field(default=False, description="稼働中フラグ")
     remain_min: int = Field(..., ge=0, description="残り時間（分）")
     alarm: bool = Field(default=False, description="異常フラグ")
     alarm_msg: str = Field(default="", description="異常メッセージ")
@@ -39,6 +41,7 @@ class ProductionData(BaseModel):
             production_type=0,
             plan=0,
             actual=0,
+            in_operating=False,
             remain_min=0,
             alarm=True,
             alarm_msg="データ取得エラー",
