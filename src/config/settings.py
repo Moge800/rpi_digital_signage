@@ -1,3 +1,4 @@
+import os
 from pydantic import IPvAnyAddress, Field
 from pydantic_settings import BaseSettings
 import dotenv
@@ -15,3 +16,5 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        if not os.path.exists(env_file):
+            raise FileNotFoundError(f"{env_file} not found")
