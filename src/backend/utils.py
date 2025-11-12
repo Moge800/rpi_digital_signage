@@ -1,6 +1,7 @@
 import os
 from backend.plc.plc_client import PLCClient
 from schemas import ProductionData
+from config.production_config import ProductionConfigManager
 from typing import Literal, cast
 from datetime import datetime
 
@@ -35,6 +36,44 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
         Literal["DEBUG", "INFO", "WARNING", "ERROR"],
         level if level in valid_levels else "INFO",
     )
+
+
+def remain_pallet_calculation(plan: int, actual: int, production_type: int) -> float:
+    """残りパレット数を計算する
+
+    Args:
+        plan: 計画生産数
+        actual: 実績生産数
+        production_type: 機種番号 (0-15)
+
+    Returns:
+        float: 残りパレット数(小数点第2位まで)
+    """
+    config_manager = ProductionConfigManager()
+    config = config_manager.get_config(production_type)
+
+    remaining_units = max(0, plan - actual)
+    remain_pallet = round(remaining_units / config.fully, 2)
+
+    return remain_pallet
+
+
+def calculate_remain_minutes(plan: int, actual: int, production_type: int) -> float:
+    """残り時間(分)を計算
+
+    Args:
+        plan: 計画数
+        actual: 実績数
+        production_type: 機種番号
+
+    Returns:
+        float: 残り時間(分)
+    """
+    config_manager = ProductionConfigManager()
+    config = config_manager.get_config(production_type)
+
+    remain = plan - actual
+    return remain / config.production_rate_per_minute
 
 
 def fetch_production_timestamp(
@@ -97,20 +136,29 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     - ProductionDataに統合して返す
     """
     # TODO: 実際のPLCデバイスから取得する実装
-    # timestamp = fetch_production_timestamp(client)
-    # plan = client.read_words("D100", size=1)[0]
-    # actual = client.read_words("D101", size=1)[0]
-    # alarm = client.read_bits("M100", size=1)[0]
+    line_name = get_line_name()
+    production_type = 1  # TODO: PLCから取得
+    plan = 30000
+    actual = 20000
+    in_operating = True
 
-    # ここにPLCからのデータ取得ロジックを実装
+    # 機種設定を使って計算
+    remain_min = calculate_remain_minutes(plan, actual, production_type)
+    remain_pallet = remain_pallet_calculation(plan, actual, production_type)
+
+    alarm = False
+    alarm_msg = ""
+    timestamp = datetime(2025, 1, 12, 10, 30, 0)
+
     return ProductionData(
-        line_name="LINE_1",
-        production_type=1,
-        plan=45000,
-        actual=30000,
-        in_operating=True,
-        remain_min=300,
-        alarm=False,
-        alarm_msg="",
-        timestamp=None,
+        line_name=line_name,
+        production_type=production_type,
+        plan=plan,
+        actual=actual,
+        in_operating=in_operating,
+        remain_min=remain_min,
+        remain_pallet=remain_pallet,
+        alarm=alarm,
+        alarm_msg=alarm_msg,
+        timestamp=timestamp,
     )

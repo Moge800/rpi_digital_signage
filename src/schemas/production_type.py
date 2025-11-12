@@ -1,0 +1,21 @@
+from pydantic import BaseModel, Field
+
+
+class ProductionTypeConfig(BaseModel):
+    """生産機種ごとの設定"""
+
+    production_type: int = Field(ge=0, le=15, description="機種番号 (0-15)")
+    name: str = Field(description="機種名")
+    fully: int = Field(gt=0, description="1パレットあたりの積載数")
+    production_rate_per_minute: int = Field(gt=0, description="1分あたりの生産数")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "production_type": 1,
+                "name": "機種A",
+                "fully": 2800,  # 140個 × 20段
+                "production_rate_per_minute": 50,
+            }
+        }
+    }

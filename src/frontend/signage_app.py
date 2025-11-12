@@ -65,6 +65,7 @@ def get_production_data() -> ProductionData:
         actual=actual,
         in_operating=True,
         remain_min=remain_min,
+        remain_pallet=float((plan - actual) / 900),  # 仮の計算式
         alarm=alarm_flag,
         alarm_msg=alarm_msg,
         timestamp=datetime.now(),
