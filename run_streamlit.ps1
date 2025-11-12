@@ -1,1 +1,0 @@
-streamlit run src/frontend/signage_app.py
