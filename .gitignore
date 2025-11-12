@@ -26,6 +26,6 @@ logs/*
 *.env
 !.env.example
 
-# config/production_types/
-*.json
-!config/production_types/example*
+# config/production_types/ - 機種マスタファイルの管理
+# 開発用ファイルはコミット、本番用は除外
+!config/production_types/*.json
