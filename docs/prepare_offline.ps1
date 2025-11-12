@@ -12,8 +12,9 @@ if (!(Test-Path "packages")) {
 
 Write-Host "[1/2] Pythonパッケージをダウンロード中..."
 
+# 方法1: pipを使用 (Python環境が必要)
 # 依存パッケージをLinux ARM64用にダウンロード
-uv pip download `
+python -m pip download `
     plotly `
     pydantic-settings `
     pymcprotocol `
@@ -21,7 +22,8 @@ uv pip download `
     streamlit `
     streamlit-autorefresh `
     --platform manylinux_2_17_aarch64 `
-    --platform linux `
+    --platform manylinux_2_28_aarch64 `
+    --only-binary=:all: `
     --python-version 3.13 `
     --dest packages/
 
