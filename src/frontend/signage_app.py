@@ -4,11 +4,15 @@ from datetime import datetime
 import plotly.graph_objects as go
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
+from dotenv import load_dotenv
 
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# .envファイルを読み込む
+load_dotenv()
 
 from schemas import ProductionData
 from backend.plc.plc_client import get_plc_client

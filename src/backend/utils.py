@@ -1,10 +1,7 @@
 import os
-from dotenv import load_dotenv
 from backend.plc.plc_client import PLCClient
 from schemas import ProductionData
 from typing import Literal, cast
-
-load_dotenv()
 
 
 def get_use_plc() -> bool:
