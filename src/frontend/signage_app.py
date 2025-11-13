@@ -77,7 +77,7 @@ def get_production_data() -> ProductionData:
     from backend.utils import calculate_remain_pallet, get_config_data
 
     line_name = os.getenv("LINE_NAME", "NONAME")
-    production_type = 0
+    production_type = random.randint(0, 2)  # 現在（ダミーモード）
     config = get_config_data(production_type)
     production_name = config.name if config else "NONE"
     fully = config.fully if config else 0  # 満杯パレット数を取得
@@ -87,7 +87,7 @@ def get_production_data() -> ProductionData:
     remain_min = int(remain_seconds / 60.0)
     alarm_flag = actual > ALARM_THRESHOLD and random.random() < ALARM_PROBABILITY
     alarm_msg = "装置異常発生中" if alarm_flag else ""
-    remain_pallet = calculate_remain_pallet(plan, actual, production_type=0, decimals=1)
+    remain_pallet = calculate_remain_pallet(plan, actual, production_type=production_type, decimals=1)
 
     return ProductionData(
         line_name=line_name,
