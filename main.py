@@ -1,11 +1,9 @@
 import subprocess
 import sys
-from src.backend.logging import setup_root_logger
 
 
 def main():
     """Streamlitアプリケーションを起動する"""
-    setup_root_logger(log_file="logs/app.log", level=20)  # INFO
     from src.backend.logging import launcher_logger
 
     launcher_logger.info("Starting Streamlit application...")
