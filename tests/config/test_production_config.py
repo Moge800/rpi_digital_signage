@@ -31,7 +31,7 @@ class TestProductionConfigManager:
 
         assert isinstance(config, ProductionTypeConfig)
         assert config.production_type == 0
-        assert config.name == "SUPER-UNSET"
+        assert config.name == "機種Z"
         assert config.fully == 2800
         assert config.seconds_per_product == 60.0
 
