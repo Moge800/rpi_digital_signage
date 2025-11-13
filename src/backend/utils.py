@@ -105,9 +105,7 @@ def calculate_remain_minutes(
     return round(remain_minute, decimals) if decimals is not None else remain_minute
 
 
-def fetch_production_timestamp(
-    client: PLCClient, head_device: str = "SD210"
-) -> datetime:
+def fetch_production_timestamp(client: PLCClient, head_device: str) -> datetime:
     """PLCから生産データのタイムスタンプを取得
 
     三菱PLCの日時データはBCD形式で格納されている。
@@ -120,7 +118,7 @@ def fetch_production_timestamp(
 
     Args:
         client: PLCクライアント
-        head_device: 日時格納デバイス (デフォルト: SD210)
+        head_device: 日時格納デバイス
 
     Returns:
         datetime: PLCから取得した日時
@@ -154,12 +152,12 @@ def fetch_production_timestamp(
         return datetime.now()
 
 
-def fetch_production_type(client: PLCClient, device_address: str = "D200") -> int:
+def fetch_production_type(client: PLCClient, device_address: str) -> int:
     """PLCから生産機種番号を取得
 
     Args:
         client: PLCクライアント
-        device_address: 機種番号格納デバイスアドレス (デフォルト: D200) TODO:実機要確認D200は適当な値
+        device_address: 機種番号格納デバイスアドレス
 
     Returns:
         int: 生産機種番号
@@ -173,12 +171,12 @@ def fetch_production_type(client: PLCClient, device_address: str = "D200") -> in
         return 0  # 0をデフォルト値として返す,0番は存在しない機種
 
 
-def fetch_plan(client: PLCClient, device_address: str = "D210") -> int:
+def fetch_plan(client: PLCClient, device_address: str) -> int:
     """PLCから生産計画数を取得
 
     Args:
         client: PLCクライアント
-        device_address: 計画数格納デバイスアドレス (デフォルト: D210) TODO:実機要確認D210は適当な値
+        device_address: 計画数格納デバイスアドレス
 
     Returns:
         int: 生産計画数
@@ -192,12 +190,12 @@ def fetch_plan(client: PLCClient, device_address: str = "D210") -> int:
         return 0  # 0をデフォルト値として返す
 
 
-def fetch_actual(client: PLCClient, device_address: str = "D220") -> int:
+def fetch_actual(client: PLCClient, device_address: str) -> int:
     """PLCから生産実績数を取得
 
     Args:
         client: PLCクライアント
-        device_address: 実績数格納デバイスアドレス (デフォルト: D220) TODO:実機要確認D220は適当な値
+        device_address: 実績数格納デバイスアドレス
 
     Returns:
         int: 生産実績数
@@ -213,12 +211,12 @@ def fetch_actual(client: PLCClient, device_address: str = "D220") -> int:
         return 0  # 0をデフォルト値として返す
 
 
-def fetch_in_operating(client: PLCClient, device_address: str = "M300") -> bool:
+def fetch_in_operating(client: PLCClient, device_address: str) -> bool:
     """PLCから稼働中フラグを取得
 
     Args:
         client: PLCクライアント
-        device_address: 稼働中フラグ格納デバイスアドレス (デフォルト: M300) TODO:実機要確認M300は適当な値
+        device_address: 稼働中フラグ格納デバイスアドレス
 
     Returns:
         bool: 稼働中フラグ
@@ -234,12 +232,12 @@ def fetch_in_operating(client: PLCClient, device_address: str = "M300") -> bool:
         return False  # Falseをデフォルト値として返す
 
 
-def fetch_alarm_flag(client: PLCClient, device_address: str = "M310") -> bool:
+def fetch_alarm_flag(client: PLCClient, device_address: str) -> bool:
     """PLCからアラームフラグを取得
 
     Args:
         client: PLCクライアント
-        device_address: アラームフラグ格納デバイスアドレス (デフォルト: M310) TODO:実機要確認M310は適当な値
+        device_address: アラームフラグ格納デバイスアドレス
 
     Returns:
         bool: アラームフラグ
@@ -253,12 +251,12 @@ def fetch_alarm_flag(client: PLCClient, device_address: str = "M310") -> bool:
         return False  # Falseをデフォルト値として返す
 
 
-def fetch_alarm_msg(client: PLCClient, device_address: str = "D300") -> str:
+def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
     """PLCからアラームメッセージを取得
 
     Args:
         client: PLCクライアント
-        device_address: アラームメッセージ格納デバイスアドレス (デフォルト: D300) TODO:実機要確認D300は適当な値
+        device_address: アラームメッセージ格納デバイスアドレス
 
     Returns:
         str: アラームメッセージ
