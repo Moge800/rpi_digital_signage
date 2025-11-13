@@ -44,6 +44,8 @@ def debug_dummy_read(func):
 
 
 class PLCClient(BasePLCClient):
+    """MELSEC Qシリーズ PLC通信クライアント (Type3E)"""
+
     _instance: "PLCClient | None" = None
 
     def __init__(self, settings: Settings):
@@ -118,16 +120,3 @@ class PLCClient(BasePLCClient):
 def get_plc_client() -> PLCClient:
     """PLCクライアントのシングルトンインスタンスを取得"""
     return PLCClient.get_instance()
-
-
-if __name__ == "__main__":
-    settings = Settings()
-    client = PLCClient(settings)
-
-    try:
-        words = client.read_words("D100", 2)
-        bits = client.read_bits("X0", 8)
-        print("WORDS:", words)
-        print("BITS :", bits)
-    finally:
-        client.disconnect()
