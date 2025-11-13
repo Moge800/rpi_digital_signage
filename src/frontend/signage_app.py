@@ -56,7 +56,7 @@ def get_production_data() -> ProductionData:
     line_name = os.getenv("LINE_NAME", "NONAME")
     production_type = 0
     config = get_config_data(production_type)
-    production_name = config.production_name if config else "NONE"
+    production_name = config.name if config else "NONE"
     plan = 45000
     actual = random.randint(0, plan)
     remain_seconds = max(0, (plan - actual) * SECONDS_PER_PRODUCT)
