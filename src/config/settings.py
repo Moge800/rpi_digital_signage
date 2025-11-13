@@ -1,6 +1,7 @@
 import os
 from pydantic import IPvAnyAddress, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Literal
 
 
 class Settings(BaseSettings):
@@ -10,6 +11,10 @@ class Settings(BaseSettings):
     RECONNECT_RETRY: int = Field(ge=0, le=10)  # 0-10回の範囲
     RECONNECT_DELAY: float = Field(ge=0.0, le=60.0)  # 0-60秒の範囲
     DEBUG_DUMMY_READ: bool = False
+    USE_PLC: bool = True
+    LINE_NAME: str = "NONAME"
+    REFRESH_INTERVAL: float = 10.0
+    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     model_config = SettingsConfigDict(
         env_file=".env",

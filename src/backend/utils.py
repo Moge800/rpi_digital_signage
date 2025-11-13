@@ -1,41 +1,33 @@
-import os
 from backend.plc.plc_client import PLCClient
 from schemas import ProductionData
 from config.production_config import ProductionConfigManager
-from typing import Literal, cast
+from config.settings import Settings
+from typing import Literal
 from datetime import datetime
 
 
 def get_use_plc() -> bool:
     """USE_PLC設定を取得"""
-    use_plc = os.getenv("USE_PLC", "true").lower()
-    return use_plc in ("1", "true", "yes", "on")
+    settings = Settings()
+    return settings.USE_PLC
 
 
 def get_line_name() -> str:
     """LINE_NAME設定を取得"""
-    return os.getenv("LINE_NAME", "NONAME")
+    settings = Settings()
+    return settings.LINE_NAME
 
 
 def get_refresh_interval() -> float:
     """フロントエンドのリフレッシュ間隔（秒）を取得"""
-    interval = os.getenv("REFRESH_INTERVAL")
-    if interval is not None:
-        try:
-            return int(interval)
-        except ValueError:
-            pass
-    return 10  # デフォルト10秒
+    settings = Settings()
+    return settings.REFRESH_INTERVAL
 
 
 def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     """ログレベルを取得"""
-    level = os.getenv("LOG_LEVEL", "INFO").upper()
-    valid_levels = ("DEBUG", "INFO", "WARNING", "ERROR")
-    return cast(
-        Literal["DEBUG", "INFO", "WARNING", "ERROR"],
-        level if level in valid_levels else "INFO",
-    )
+    settings = Settings()
+    return settings.LOG_LEVEL
 
 
 def calculate_remain_pallet(
