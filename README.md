@@ -15,12 +15,43 @@
 
 ## セットアップ
 
-1. `.env.example` を `.env` にコピー
-2. `.env` を編集してPLC接続情報とテーマを設定
+### オフライン環境 (Raspberry Pi)
+
+オフライン環境でPython 3.13をインストールする場合:
+
+📖 **[オフラインインストールガイド](docs/OFFLINE_PYTHON_INSTALL.md)** を参照
+
+### オンライン環境
+
+1. Python 3.13のインストール
+   ```bash
+   python3.13 --version  # バージョン確認
+   ```
+
+2. `.env.example` を `.env` にコピー
+   ```bash
+   cp .env.example .env
+   ```
+
+3. `.env` を編集してPLC接続情報とテーマを設定
    ```env
    THEME=dark  # dark または light
+   PLC_IP=192.168.0.10
+   PLC_PORT=5000
    ```
-3. `python main.py` で起動
+
+4. 依存関係インストール
+   ```bash
+   python3.13 -m venv .venv
+   source .venv/bin/activate
+   pip install uv
+   uv sync
+   ```
+
+5. アプリケーション起動
+   ```bash
+   python main.py
+   ```
 
 詳細は [docs/README.md](docs/README.md) を参照してください。
 
