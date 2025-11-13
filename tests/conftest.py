@@ -3,6 +3,7 @@
 import os
 import sys
 from pathlib import Path
+import shutil
 
 import pytest
 
@@ -10,6 +11,12 @@ import pytest
 project_root = Path(__file__).parent.parent
 src_dir = project_root / "src"
 sys.path.insert(0, str(src_dir))
+
+# テスト実行前に.envファイルを準備(.env.exampleからコピー)
+env_file = project_root / ".env"
+env_example = project_root / ".env.example"
+if not env_file.exists() and env_example.exists():
+    shutil.copy(env_example, env_file)
 
 # テスト用環境変数を設定
 os.environ["LINE_NAME"] = "dev_line_1"
