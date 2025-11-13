@@ -47,6 +47,7 @@ class ProductionData(BaseModel):
                 "in_operating": False,
                 "remain_min": 300,
                 "remain_pallet": 50,
+                "fully": 600,
                 "alarm": False,
                 "alarm_msg": "",
                 "timestamp": "2025-11-12T10:30:00",
@@ -62,6 +63,7 @@ class ProductionData(BaseModel):
     in_operating: bool = Field(default=False, description="稼働中フラグ")
     remain_min: int = Field(..., ge=0, description="残り時間（分）")
     remain_pallet: float = Field(..., ge=0, description="残りパレット数")
+    fully: int = Field(..., ge=0, description="満杯パレット数")
     alarm: bool = Field(default=False, description="異常フラグ")
     alarm_msg: str = Field(default="", description="異常メッセージ")
     timestamp: datetime = Field(
@@ -87,6 +89,7 @@ class ProductionData(BaseModel):
             in_operating=False,
             remain_min=0,
             remain_pallet=0,
+            fully=0,
             alarm=True,
             alarm_msg="データ取得エラー",
             timestamp=datetime.now(),

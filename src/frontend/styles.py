@@ -103,31 +103,36 @@ def get_page_styles(theme: str = "dark") -> str:
         background-color: {colors["bg_color"]};
     }}
     .header-title {{
-        font-size: 5.2rem;
+        font-size: 2.8rem;
         font-weight: 700;
         padding: 0.2rem 0;
         color: {colors["header_color"]};
     }}
     .header-time {{
-        font-size: 1.1rem;
+        font-size: 1.0rem;
         text-align: right;
         color: {colors["text_secondary"]};
     }}
     .kpi-label {{
-        font-size: 5rem;
+        font-size: 1.2rem;
         color: {colors["kpi_label_color"]};
     }}
     .kpi-value-big {{
-        font-size: 8.0rem;
+        font-size: 4.5rem;
         font-weight: 800;
         color: {colors["kpi_value_color"]};
     }}
     .kpi-sub {{
-        font-size: 4.0rem;
+        font-size: 1.5rem;
         color: {colors["kpi_sub_color"]};
     }}
+    .kpi-value-norm {{
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: {colors["kpi_value_color"]};
+    }}
     .status-ok {{
-        font-size: 3rem;
+        font-size: 1.8rem;
         background: {colors["status_ok_bg"]};
         padding: 0.8rem;
         border-radius: 0.6rem;
@@ -136,7 +141,7 @@ def get_page_styles(theme: str = "dark") -> str:
         font-weight: 600;
     }}
     .status-warn {{
-        font-size: 3rem;
+        font-size: 1.8rem;
         background: {colors["status_warn_bg"]};
         padding: 0.8rem;
         border-radius: 0.6rem;
@@ -145,7 +150,7 @@ def get_page_styles(theme: str = "dark") -> str:
         font-weight: 600;
     }}
     .status-alarm {{
-        font-size: 3rem;
+        font-size: 1.8rem;
         background: {colors["status_alarm_bg"]};
         padding: 0.8rem;
         border-radius: 0.6rem;
@@ -156,14 +161,14 @@ def get_page_styles(theme: str = "dark") -> str:
     .alarm-bar {{
         background: {colors["alarm_bar_error_bg"]};
         color: white;
-        font-size: 4.4rem;
+        font-size: 2.5rem;
         font-weight: 700;
         padding: 0.4rem 1.0rem;
         border-radius: 0.5rem;
         text-align: left;
     }}
     .footer {{
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         color: #888888;
         text-align: right;
         padding-top: 0.2rem;

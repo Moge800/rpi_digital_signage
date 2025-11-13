@@ -80,6 +80,7 @@ def get_production_data() -> ProductionData:
     production_type = 0
     config = get_config_data(production_type)
     production_name = config.name if config else "NONE"
+    fully = config.fully if config else 0  # 満杯パレット数を取得
     plan = 45000
     actual = random.randint(0, plan)
     remain_seconds = max(0, (plan - actual) * SECONDS_PER_PRODUCT)
@@ -97,6 +98,7 @@ def get_production_data() -> ProductionData:
         in_operating=True,
         remain_min=remain_min,
         remain_pallet=remain_pallet,
+        fully=fully,
         alarm=alarm_flag,
         alarm_msg=alarm_msg,
         timestamp=datetime.now(),
@@ -133,11 +135,15 @@ data = get_production_data()
 render_header(data)
 st.markdown("---")
 
-# ===== 上段：生産数量 ＋ 残り時間 =====
-col_left, col_right = st.columns([2, 1])
-
 # 進捗率計算
 progress = min(1.0, data.actual / data.plan) if data.plan else 0
+
+# ===== メイン: ゲージ =====
+gauge_fig = get_gauge_figure(progress, theme=THEME)
+st.plotly_chart(gauge_fig, width="stretch")
+
+# ===== 下部: 生産情報 =====
+col_left, col_right = st.columns(2)
 
 # ---- 左：生産数量 ----
 with col_left:
@@ -146,10 +152,6 @@ with col_left:
 # ---- 右：残り時間 ＋ ステータス ----
 with col_right:
     render_time_and_status(data, progress)
-
-# ===== 中段：ゲージ =====
-gauge_fig = get_gauge_figure(progress, theme=THEME)
-st.plotly_chart(gauge_fig, width="stretch")
 
 # ===== 下段：異常バー =====
 st.markdown("---")

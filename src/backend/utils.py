@@ -300,6 +300,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     # 機種設定を使って計算
     remain_min = calculate_remain_minutes(plan, actual, production_type)
     remain_pallet = calculate_remain_pallet(plan, actual, production_type)
+    fully = config.fully
     timestamp = fetch_production_timestamp(client, device_dict["TIME_DEVICE"])
 
     return ProductionData(
@@ -311,6 +312,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
         in_operating=in_operating,
         remain_min=remain_min,
         remain_pallet=remain_pallet,
+        fully=fully,
         alarm=alarm,
         alarm_msg=alarm_msg,
         timestamp=timestamp,

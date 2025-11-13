@@ -108,7 +108,8 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
         go.Indicator(
             mode="gauge+number",
             value=progress * 100,
-            title={"text": "生産進捗率（%）"},
+            number={"suffix": "%"},  # パーセント記号を追加
+            # title={"text": "生産進捗率"},
             gauge={
                 "axis": {"range": [0, 100]},
                 "bar": {"color": colors["gauge_bar"]},
@@ -126,7 +127,8 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
     )
 
     fig.update_layout(
-        margin=dict(t=40, b=10, l=40, r=40),
+        margin=dict(t=30, b=5, l=30, r=30),
+        height=350,  # フルHD対応：ゲージの高さを制限
         paper_bgcolor=colors["gauge_bg"],
         font=dict(color=colors["text_color"]),
     )
@@ -158,23 +160,26 @@ def render_header(data: ProductionData) -> None:
 def render_production_metrics(data: ProductionData, progress: float) -> None:
     """生産数量メトリクスをレンダリング
 
-    計画数、実績数、残りパレット数、進捗率を表示する。
+    計画数、実績数、進捗率、パレット情報を表示する。
 
     Args:
         data: 生産データ
         progress: 進捗率 (0.0-1.0)
     """
     st.markdown(
-        "<div class='kpi-label'>投入数/生産数量 [残りPL数]</div>",
+        f"<div class='kpi-value-big' style='text-align: center;'>{data.actual:,d} <span style='font-size: 0.6em; color: #888;'>/ {data.plan:,d}</span></div>",
         unsafe_allow_html=True,
     )
     st.markdown(
-        f"<div class='kpi-value-big'>{data.actual:,d} / {data.plan:,d} [{data.remain_pallet:,.1f}PL]</div>",
+        "<div class='kpi-label' style='text-align: center; margin-top: -10px;'>投入数 / 生産数量</div>",
         unsafe_allow_html=True,
     )
     st.progress(progress)
+
+    # パレット情報（最重要）
+    required_pallets = data.plan / data.fully
     st.markdown(
-        f"<div class='kpi-sub'>進捗率：{progress*100:,.1f}%</div>",
+        f"<div class='kpi-value-big' style='text-align: center; margin-top: 1rem; color: #31c77f;'>PL {data.remain_pallet:.1f} <span style='font-size: 0.6em; color: #888;'>/ {required_pallets:.1f}</span></div>",
         unsafe_allow_html=True,
     )
 
@@ -188,19 +193,20 @@ def render_time_and_status(data: ProductionData, progress: float) -> None:
         data: 生産データ
         progress: 進捗率 (0.0-1.0)
     """
-    from frontend.utils import format_time_hhmm
-
-    st.markdown("<div class='kpi-label'>残り生産時間</div>", unsafe_allow_html=True)
-
-    time_str = format_time_hhmm(data.remain_min)
+    hours = data.remain_min // 60
+    mins = data.remain_min % 60
     st.markdown(
-        f"<div class='kpi-value-big'>{time_str}</div>",
+        f"<div class='kpi-value-big' style='text-align: center;'>{hours:02d}<span style='font-size: 0.6em; color: #888;'>時間</span>{mins:02d}<span style='font-size: 0.6em; color: #888;'>分</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='kpi-label' style='text-align: center; margin-top: -10px;'>残り生産時間</div>",
         unsafe_allow_html=True,
     )
 
     status_class, status_text = get_status_info(data.alarm, progress)
     st.markdown(
-        f"<div class='{status_class}'><b>装置ステータス：</b> {status_text}</div>",
+        f"<div class='{status_class}' style='text-align: center; margin-top: 1rem;'>{status_text}</div>",
         unsafe_allow_html=True,
     )
 

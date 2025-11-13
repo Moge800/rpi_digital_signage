@@ -22,6 +22,7 @@ class TestProductionData:
             in_operating=True,
             remain_min=200,
             remain_pallet=3.57,
+            fully=600,
             alarm=False,
             alarm_msg="",
             timestamp=datetime(2025, 11, 13, 10, 30, 0),
@@ -35,6 +36,7 @@ class TestProductionData:
         assert data.in_operating is True
         assert data.remain_min == 200
         assert data.remain_pallet == pytest.approx(3.57)
+        assert data.fully == 600
         assert data.alarm is False
         assert data.alarm_msg == ""
 
@@ -48,6 +50,7 @@ class TestProductionData:
             actual=5000,
             remain_min=100,
             remain_pallet=5.0,
+            fully=600,
         )
 
         # デフォルト値の確認
@@ -67,6 +70,7 @@ class TestProductionData:
                 actual=0,
                 remain_min=0,
                 remain_pallet=0.0,
+                fully=600,
             )
 
     def test_production_data_negative_actual_raises_error(self):
@@ -80,6 +84,7 @@ class TestProductionData:
                 actual=-500,  # 負の値
                 remain_min=0,
                 remain_pallet=0.0,
+                fully=600,
             )
 
     def test_production_data_error_factory(self):
@@ -104,6 +109,7 @@ class TestProductionData:
             actual=20000,
             remain_min=200,
             remain_pallet=3.57,
+            fully=600,
             timestamp=datetime(2025, 11, 13, 10, 30, 0),
         )
 
