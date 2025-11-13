@@ -251,10 +251,10 @@ semantic_search "main application logic business logic functions classes"
 4. GitHub Actionsでも自動テストが通ることを確認
 
 #### 2. 開発ログの作成
-その日の開発内容をまとめた資料を`logs/`フォルダに生成:
+その日の開発内容をまとめた資料を`dev_logs/`フォルダに生成:
 
 ```bash
-# ファイル名: logs/YYYY-MM-DD.md (例: logs/2025-11-14.md)
+# ファイル名: dev_logs/YYYY-MM-DD.md (例: dev_logs/2025-11-14.md)
 ```
 
 **ログに記載する内容**:
