@@ -119,6 +119,18 @@ os.system("streamlit run app.py")
 - 型を正しく定義すれば不要なはず
 - やむを得ない場合のみ使用し、理由をコメント
 
+### 11. ファイルエンコーディング
+- **PowerShellスクリプト (`.ps1`)**: UTF-8 BOM付き (Microsoft推奨)
+- **その他すべてのファイル**: UTF-8 BOMなし
+  - Python (`.py`)
+  - Markdown (`.md`)
+  - JSON (`.json`)
+  - YAML (`.yml`, `.yaml`)
+  - Bash (`.sh`)
+  - テキストファイル (`.txt`, `.env`)
+
+**理由**: PowerShellは歴史的経緯でBOMなしUTF-8を正しく解釈できない場合があるため、BOM付きを使用する。
+
 ## PLC通信の注意点
 - `PLCClient`はシングルトンパターン
 - 自動再接続機能あり(`AUTO_RECONNECT=true`)
