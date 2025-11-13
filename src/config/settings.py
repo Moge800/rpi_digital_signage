@@ -39,7 +39,8 @@ class PLCDeviceList(BaseSettings):
     PRODUCTION_TYPE_DEVICE: str = ""
     PLAN_DEVICE: str = ""
     ACTUAL_DEVICE: str = ""
-    ALARM_DEVICE: str = ""
+    ALARM_FLAG_DEVICE: str = ""
+    ALARM_MSG_DEVICE: str = ""
     IN_OPERATING_DEVICE: str = ""
 
     model_config = SettingsConfigDict(

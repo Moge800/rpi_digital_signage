@@ -75,7 +75,8 @@ class TestPLCDeviceList:
         assert device_list.PRODUCTION_TYPE_DEVICE == ""
         assert device_list.PLAN_DEVICE == ""
         assert device_list.ACTUAL_DEVICE == ""
-        assert device_list.ALARM_DEVICE == ""
+        assert device_list.ALARM_FLAG_DEVICE == ""
+        assert device_list.ALARM_MSG_DEVICE == ""
         assert device_list.IN_OPERATING_DEVICE == ""
 
     def test_plc_device_list_custom_values(self):

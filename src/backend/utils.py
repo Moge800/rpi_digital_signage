@@ -2,6 +2,7 @@ from backend.plc.plc_client import PLCClient
 from schemas import ProductionData
 from config.production_config import ProductionConfigManager, ProductionTypeConfig
 from config.settings import Settings
+from backend.logging import plc_logger as logger
 from typing import Literal
 from datetime import datetime
 
@@ -41,6 +42,22 @@ def get_config_data(production_type: int) -> ProductionTypeConfig:
     """
     config_manager = ProductionConfigManager()
     return config_manager.get_config(production_type)
+
+
+def get_plc_device_dict() -> dict[str, str]:
+    """PLCデバイスリスト設定を取得"""
+    from config.settings import PLCDeviceList
+
+    device_list_settings = PLCDeviceList()
+    return {
+        "TIME_DEVICE": device_list_settings.TIME_DEVICE,
+        "PRODUCTION_TYPE_DEVICE": device_list_settings.PRODUCTION_TYPE_DEVICE,
+        "PLAN_DEVICE": device_list_settings.PLAN_DEVICE,
+        "ACTUAL_DEVICE": device_list_settings.ACTUAL_DEVICE,
+        "ALARM_FLAG_DEVICE": device_list_settings.ALARM_FLAG_DEVICE,
+        "ALARM_MSG_DEVICE": device_list_settings.ALARM_MSG_DEVICE,
+        "IN_OPERATING_DEVICE": device_list_settings.IN_OPERATING_DEVICE,
+    }
 
 
 def calculate_remain_pallet(
@@ -133,10 +150,130 @@ def fetch_production_timestamp(
 
     except (ConnectionError, OSError, ValueError, IndexError) as e:
         # PLC接続エラーまたはデータ変換エラー時は現在時刻を返す
-        from backend.logging import plc_logger as logger
-
         logger.warning(f"Failed to get timestamp from PLC: {e}, using system time")
         return datetime.now()
+
+
+def fetch_production_type(client: PLCClient, device_address: str = "D200") -> int:
+    """PLCから生産機種番号を取得
+
+    Args:
+        client: PLCクライアント
+        device_address: 機種番号格納デバイスアドレス (デフォルト: D200) TODO:実機要確認D200は適当な値
+
+    Returns:
+        int: 生産機種番号
+    """
+    try:
+        data = client.read_words(device_address, size=1)
+        production_type = data[0]
+        return production_type
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(f"Failed to get production type from PLC: {e}, using default 0")
+        return 0  # 0をデフォルト値として返す,0番は存在しない機種
+
+
+def fetch_plan(client: PLCClient, device_address: str = "D210") -> int:
+    """PLCから生産計画数を取得
+
+    Args:
+        client: PLCクライアント
+        device_address: 計画数格納デバイスアドレス (デフォルト: D210) TODO:実機要確認D210は適当な値
+
+    Returns:
+        int: 生産計画数
+    """
+    try:
+        data = client.read_words(device_address, size=1)
+        plan = data[0]
+        return plan
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(f"Failed to get production plan from PLC: {e}, using default 0")
+        return 0  # 0をデフォルト値として返す
+
+
+def fetch_actual(client: PLCClient, device_address: str = "D220") -> int:
+    """PLCから生産実績数を取得
+
+    Args:
+        client: PLCクライアント
+        device_address: 実績数格納デバイスアドレス (デフォルト: D220) TODO:実機要確認D220は適当な値
+
+    Returns:
+        int: 生産実績数
+    """
+    try:
+        data = client.read_words(device_address, size=1)
+        actual = data[0]
+        return actual
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(
+            f"Failed to get production actual from PLC: {e}, using default 0"
+        )
+        return 0  # 0をデフォルト値として返す
+
+
+def fetch_in_operating(client: PLCClient, device_address: str = "M300") -> bool:
+    """PLCから稼働中フラグを取得
+
+    Args:
+        client: PLCクライアント
+        device_address: 稼働中フラグ格納デバイスアドレス (デフォルト: M300) TODO:実機要確認M300は適当な値
+
+    Returns:
+        bool: 稼働中フラグ
+    """
+    try:
+        data = client.read_bits(device_address, size=1)
+        in_operating = bool(data[0])
+        return in_operating
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(
+            f"Failed to get in_operating flag from PLC: {e}, using default False"
+        )
+        return False  # Falseをデフォルト値として返す
+
+
+def fetch_alarm_flag(client: PLCClient, device_address: str = "M310") -> bool:
+    """PLCからアラームフラグを取得
+
+    Args:
+        client: PLCクライアント
+        device_address: アラームフラグ格納デバイスアドレス (デフォルト: M310) TODO:実機要確認M310は適当な値
+
+    Returns:
+        bool: アラームフラグ
+    """
+    try:
+        data = client.read_bits(device_address, size=1)
+        alarm_flag = bool(data[0])
+        return alarm_flag
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(f"Failed to get alarm flag from PLC: {e}, using default False")
+        return False  # Falseをデフォルト値として返す
+
+
+def fetch_alarm_msg(client: PLCClient, device_address: str = "D300") -> str:
+    """PLCからアラームメッセージを取得
+
+    Args:
+        client: PLCクライアント
+        device_address: アラームメッセージ格納デバイスアドレス (デフォルト: D300) TODO:実機要確認D300は適当な値
+
+    Returns:
+        str: アラームメッセージ
+    """
+    try:
+        data = client.read_words(device_address, size=10)  # 10ワード分読み取り
+        # ワードデータを文字列に変換 (例: [0x414C, 0x4152] → "ALAR")
+        alarm_msg = "".join(chr((word >> 8) & 0xFF) + chr(word & 0xFF) for word in data)
+        alarm_msg = alarm_msg.rstrip("\x00")  # 末尾のNULL文字を削除
+        return alarm_msg
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(
+            f"Failed to get alarm message from PLC: {e}, using default empty string"
+        )
+        return ""  # 空文字をデフォルト値として返す
 
 
 def fetch_production_data(client: PLCClient) -> ProductionData:
@@ -148,11 +285,16 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     - ProductionDataに統合して返す
     """
     # TODO: 実際のPLCデバイスから取得する実装
+    device_dict = get_plc_device_dict()
     line_name = get_line_name()
-    production_type = 1  # TODO: PLCから取得
-    plan = 30000
-    actual = 20000
-    in_operating = True
+    production_type = fetch_production_type(
+        client, device_dict["PRODUCTION_TYPE_DEVICE"]
+    )
+    plan = fetch_plan(client, device_dict["PLAN_DEVICE"])
+    actual = fetch_actual(client, device_dict["ACTUAL_DEVICE"])
+    in_operating = fetch_in_operating(client, device_dict["IN_OPERATING_DEVICE"])
+    alarm = fetch_alarm_flag(client, device_dict["ALARM_FLAG_DEVICE"])
+    alarm_msg = fetch_alarm_msg(client, device_dict["ALARM_MSG_DEVICE"])
 
     # 機種設定を取得してproduction_nameを解決
     config = get_config_data(production_type)
@@ -160,10 +302,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     # 機種設定を使って計算
     remain_min = calculate_remain_minutes(plan, actual, production_type)
     remain_pallet = calculate_remain_pallet(plan, actual, production_type)
-
-    alarm = False
-    alarm_msg = ""
-    timestamp = datetime(2025, 1, 12, 10, 30, 0)
+    timestamp = fetch_production_timestamp(client, device_dict["TIME_DEVICE"])
 
     return ProductionData(
         line_name=line_name,
