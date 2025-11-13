@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 load_dotenv()
 
 from schemas import ProductionData
-from backend.plc.plc_client import get_plc_client
+from backend.plc.plc_client import get_plc_client, PLCClient
 from backend.utils import get_refresh_interval, get_use_plc
 from backend.logging import app_logger as logger
 
@@ -32,7 +32,12 @@ ALARM_PROBABILITY = 0.5  # アラーム発生確率
 if USE_PLC:
 
     @st.cache_resource
-    def cache_plc_client():
+    def cache_plc_client() -> PLCClient:
+        """PLCクライアントをキャッシュする (Streamlit再実行対策)
+
+        Returns:
+            PLCClient: キャッシュされたPLCクライアントインスタンス
+        """
         return get_plc_client()
 
     client = cache_plc_client()
@@ -51,6 +56,14 @@ else:
 #  （ここをPLC / DB / APIに差し替え）
 # --------------------------
 def get_production_data() -> ProductionData:
+    """生産データを取得する
+
+    現在はダミーデータを生成して返す。
+    TODO: USE_PLC=true時にbackend.utils.fetch_production_data()を呼ぶ実装
+
+    Returns:
+        ProductionData: 生産データ (現在はランダムなダミーデータ)
+    """
     from backend.utils import calculate_remain_pallet, get_config_data
 
     line_name = os.getenv("LINE_NAME", "NONAME")

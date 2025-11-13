@@ -3,7 +3,38 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class ProductionData(BaseModel):
-    """生産データのスキーマ"""
+    """生産データのスキーマ
+
+    PLCから取得した生産ラインのリアルタイムデータを保持する。
+    フロントエンド表示用の全情報を含む。
+
+    Attributes:
+        line_name: ライン名
+        production_type: 生産機種番号
+        production_name: 生産機種名
+        plan: 計画生産数
+        actual: 実績生産数
+        in_operating: 稼働中フラグ
+        remain_min: 残り生産時間(分)
+        remain_pallet: 残りパレット数
+        alarm: 異常発生フラグ
+        alarm_msg: 異常メッセージ
+        timestamp: データ取得時刻
+
+    Examples:
+        >>> data = ProductionData(
+        ...     line_name="LINE_1",
+        ...     production_type=1,
+        ...     production_name="機種A",
+        ...     plan=45000,
+        ...     actual=30000,
+        ...     in_operating=True,
+        ...     remain_min=300,
+        ...     remain_pallet=50.5,
+        ...     alarm=False,
+        ...     alarm_msg=""
+        ... )
+    """
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -39,7 +70,14 @@ class ProductionData(BaseModel):
 
     @classmethod
     def error(cls) -> "ProductionData":
-        """エラー時のデフォルトデータを返す"""
+        """エラー時のデフォルトデータを返す
+
+        PLC通信エラー等でデータ取得に失敗した場合に使用する
+        フォールバック用のデータを生成する。
+
+        Returns:
+            ProductionData: エラー状態を示すデータ
+        """
         return cls(
             line_name="ERROR",
             production_type=0,

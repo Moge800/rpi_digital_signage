@@ -29,7 +29,7 @@ class ProductionConfigManager:
     _configs: dict[int, ProductionTypeConfig]
     _line_name: str
 
-    def __new__(cls, line_name: str | None = None):
+    def __new__(cls, line_name: str | None = None) -> "ProductionConfigManager":
         """シングルトンインスタンスを返す
 
         Args:
