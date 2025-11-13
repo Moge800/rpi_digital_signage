@@ -53,7 +53,13 @@ else:
 # --------------------------
 def get_production_data() -> ProductionData:
     from backend.utils import calculate_remain_pallet
+    from config.production_config import ProductionConfigManager
 
+    line_name = os.getenv("LINE_NAME", "NONAME")
+    production_type = 0
+    config_manager = ProductionConfigManager()
+    config = config_manager.get_config(production_type)
+    production_name = config.production_name if config else "NONE"
     plan = 45000
     actual = random.randint(0, plan)
     remain_seconds = max(0, (plan - actual) * SECONDS_PER_PRODUCT)
@@ -63,9 +69,9 @@ def get_production_data() -> ProductionData:
     remain_pallet = calculate_remain_pallet(plan, actual, production_type=0, decimals=1)
 
     return ProductionData(
-        line_name=os.getenv("LINE_NAME", "NONAME"),
-        production_type=0,
-        production_name="NONE",
+        line_name=line_name,
+        production_type=production_type,
+        production_name=production_name,
         plan=plan,
         actual=actual,
         in_operating=True,
