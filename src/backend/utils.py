@@ -1,6 +1,6 @@
 from backend.plc.plc_client import PLCClient
-from schemas import ProductionData
-from config.production_config import ProductionConfigManager, ProductionTypeConfig
+from schemas import ProductionData, ProductionTypeConfig
+from config.production_config import ProductionConfigManager
 from config.settings import Settings
 from backend.logging import plc_logger as logger
 from typing import Literal
