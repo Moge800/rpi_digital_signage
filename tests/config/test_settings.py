@@ -72,12 +72,12 @@ class TestPLCDeviceList:
         device_list = PLCDeviceList()
 
         assert device_list.TIME_DEVICE == "D210"
-        assert device_list.PRODUCTION_TYPE_DEVICE == ""
-        assert device_list.PLAN_DEVICE == ""
-        assert device_list.ACTUAL_DEVICE == ""
-        assert device_list.ALARM_FLAG_DEVICE == ""
-        assert device_list.ALARM_MSG_DEVICE == ""
-        assert device_list.IN_OPERATING_DEVICE == ""
+        assert device_list.PRODUCTION_TYPE_DEVICE == "D100"
+        assert device_list.PLAN_DEVICE == "D101"
+        assert device_list.ACTUAL_DEVICE == "D102"
+        assert device_list.ALARM_FLAG_DEVICE == "D103"
+        assert device_list.ALARM_MSG_DEVICE == "D104"
+        assert device_list.IN_OPERATING_DEVICE == "D105"
 
     def test_plc_device_list_custom_values(self):
         """カスタム値を設定できるか"""
