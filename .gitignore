@@ -6,6 +6,8 @@ dist/
 wheels/
 *.egg-info
 .mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
 # IDE files
 .vscode/
@@ -21,6 +23,10 @@ Thumbs.db
 # Log files
 *.log
 logs/*
+
+# development files
+dev_data/
+dev_logs/
 
 # envirion files
 *.env
