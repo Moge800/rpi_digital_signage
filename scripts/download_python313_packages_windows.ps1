@@ -1,4 +1,4 @@
-# Raspberry Pi Python 3.13 オフラインインストールパッケージ ダウンロードスクリプト (Windows PowerShell版)
+﻿# Raspberry Pi Python 3.13 オフラインインストールパッケージ ダウンロードスクリプト (Windows PowerShell版)
 # WSLがインストールされている環境で実行してください
 #
 # 使い方:
