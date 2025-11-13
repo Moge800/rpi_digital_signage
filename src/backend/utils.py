@@ -1,6 +1,6 @@
 from backend.plc.plc_client import PLCClient
 from schemas import ProductionData
-from config.production_config import ProductionConfigManager
+from config.production_config import ProductionConfigManager, ProductionTypeConfig
 from config.settings import Settings
 from typing import Literal
 from datetime import datetime
@@ -30,6 +30,19 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     return settings.LOG_LEVEL
 
 
+def get_config_data(production_type: int) -> ProductionTypeConfig:
+    """指定された機種番号に対応する機種設定を取得する
+
+    Args:
+        production_type: 機種番号 (0-15)
+
+    Returns:
+        ProductionTypeConfig: 機種設定オブジェクト
+    """
+    config_manager = ProductionConfigManager()
+    return config_manager.get_config(production_type)
+
+
 def calculate_remain_pallet(
     plan: int, actual: int, production_type: int, decimals: int | None = 2
 ) -> float:
@@ -44,8 +57,7 @@ def calculate_remain_pallet(
     Returns:
         float: 残りパレット数
     """
-    config_manager = ProductionConfigManager()
-    config = config_manager.get_config(production_type)
+    config = get_config_data(production_type)
 
     remaining_units = max(0, plan - actual)
     remain_pallet = remaining_units / config.fully
@@ -67,8 +79,7 @@ def calculate_remain_minutes(
     Returns:
         float: 残り時間(分)
     """
-    config_manager = ProductionConfigManager()
-    config = config_manager.get_config(production_type)
+    config = get_config_data(production_type)
 
     remain = plan - actual
     remain_seconds = remain * config.seconds_per_product  # 残り個数 × 1個あたりの秒数
@@ -144,8 +155,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     in_operating = True
 
     # 機種設定を取得してproduction_nameを解決
-    config_manager = ProductionConfigManager()
-    config = config_manager.get_config(production_type)
+    config = get_config_data(production_type)
 
     # 機種設定を使って計算
     remain_min = calculate_remain_minutes(plan, actual, production_type)

@@ -51,13 +51,11 @@ else:
 #  （ここをPLC / DB / APIに差し替え）
 # --------------------------
 def get_production_data() -> ProductionData:
-    from backend.utils import calculate_remain_pallet
-    from config.production_config import ProductionConfigManager
+    from backend.utils import calculate_remain_pallet, get_config_data
 
     line_name = os.getenv("LINE_NAME", "NONAME")
     production_type = 0
-    config_manager = ProductionConfigManager()
-    config = config_manager.get_config(production_type)
+    config = get_config_data(production_type)
     production_name = config.production_name if config else "NONE"
     plan = 45000
     actual = random.randint(0, plan)
