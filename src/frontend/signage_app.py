@@ -149,7 +149,7 @@ with col_right:
 
 # ===== 中段：ゲージ =====
 gauge_fig = get_gauge_figure(progress, theme=THEME)
-st.plotly_chart(gauge_fig, use_container_width=True)
+st.plotly_chart(gauge_fig, width="stretch")
 
 # ===== 下段：異常バー =====
 st.markdown("---")
