@@ -9,6 +9,11 @@ wheels/
 .pytest_cache/
 .ruff_cache/
 
+# Coverage reports
+.coverage
+coverage.json
+htmlcov/
+
 # IDE files
 .vscode/
 .idea/
