@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         LINE_NAME: ライン名 (機種マスタJSONファイル名と対応)
         REFRESH_INTERVAL: フロントエンド自動更新間隔(秒)
         LOG_LEVEL: ログレベル (DEBUG/INFO/WARNING/ERROR)
+        THEME: UIテーマ (dark: ダークモード, light: ライトモード)
     """
 
     PLC_IP: IPvAnyAddress
@@ -32,6 +33,7 @@ class Settings(BaseSettings):
     LINE_NAME: str = "NONAME"
     REFRESH_INTERVAL: float = 10.0
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    THEME: Literal["dark", "light"] = "dark"
 
     model_config = SettingsConfigDict(
         env_file=".env",
