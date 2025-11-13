@@ -87,7 +87,9 @@ def get_production_data() -> ProductionData:
     remain_min = int(remain_seconds / 60.0)
     alarm_flag = actual > ALARM_THRESHOLD and random.random() < ALARM_PROBABILITY
     alarm_msg = "装置異常発生中" if alarm_flag else ""
-    remain_pallet = calculate_remain_pallet(plan, actual, production_type=production_type, decimals=1)
+    remain_pallet = calculate_remain_pallet(
+        plan, actual, production_type=production_type, decimals=1
+    )
 
     return ProductionData(
         line_name=line_name,
