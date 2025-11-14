@@ -39,20 +39,14 @@ class ProductionConfigManager:
             ProductionConfigManager: シングルトンインスタンス
         """
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialize(line_name)
+            instance = super().__new__(cls)
+            # 属性を初期化してからインスタンスに代入
+            if line_name is None:
+                line_name = os.getenv("LINE_NAME", "LINE_1")
+            instance._line_name = line_name
+            instance._configs = instance._load_configs()
+            cls._instance = instance
         return cls._instance
-
-    def _initialize(self, line_name: str | None = None) -> None:
-        """初期化処理
-
-        Args:
-            line_name: ライン名 (Noneの場合は環境変数LINE_NAMEを使用)
-        """
-        if line_name is None:
-            line_name = os.getenv("LINE_NAME", "LINE_1")
-        self._line_name = line_name
-        self._configs = self._load_configs()
 
     def _load_configs(self) -> dict[int, ProductionTypeConfig]:
         """JSONファイルから機種マスタを読み込み
