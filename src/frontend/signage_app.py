@@ -160,6 +160,6 @@ st.markdown("---")
 render_alarm_bar(data)
 
 st.markdown(
-    "<div class='footer'>更新間隔：10秒 / Powered by Streamlit</div>",
+    f"<div class='footer'>更新間隔：{REFRESH_INTERVAL}秒 / Powered by Streamlit</div>",
     unsafe_allow_html=True,
 )
