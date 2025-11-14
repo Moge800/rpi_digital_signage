@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 import random
@@ -38,6 +37,7 @@ THEME = settings.THEME  # UIテーマ (dark/light)
 SECONDS_PER_PRODUCT = 1.2  # 1個あたりの生産時間(秒) (50個/分 = 1.2秒/個)
 ALARM_THRESHOLD = 8000  # アラーム判定の閾値
 ALARM_PROBABILITY = 0.5  # アラーム発生確率
+MAX_PRODUCTION_TYPE = 2  # ダミーモードで使用する最大機種番号
 
 if USE_PLC:
 
@@ -79,8 +79,8 @@ def get_production_data() -> ProductionData:
     """
     from backend.utils import calculate_remain_pallet, get_config_data
 
-    line_name = os.getenv("LINE_NAME", "NONAME")
-    production_type = random.randint(0, 2)  # 現在（ダミーモード）
+    line_name = settings.LINE_NAME
+    production_type = random.randint(0, MAX_PRODUCTION_TYPE)
     config = get_config_data(production_type)
     production_name = config.name if config else "NONE"
     fully = config.fully if config else 0  # 満杯パレット数を取得
