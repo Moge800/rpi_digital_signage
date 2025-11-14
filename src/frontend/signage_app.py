@@ -54,9 +54,12 @@ if USE_PLC:
     try:
         words = client.read_words("D100", size=10)
         bits = client.read_bits("M100", size=10)
-    except Exception as e:
+    except (ConnectionError, OSError, TimeoutError) as e:
         st.error(f"PLCからのデータ取得に失敗: {e}")  # UI上にエラー表示
         logger.error(f"PLC read error: {e}")  # ログファイルに記録
+    except ConnectionRefusedError as e:
+        st.error(f"PLCへの接続が拒否されました: {e}")  # UI上にエラー表示
+        logger.error(f"PLC connection refused: {e}")  # ログファイルに記録
 else:
     pass
 
