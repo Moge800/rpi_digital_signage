@@ -7,7 +7,8 @@ set -e  # エラーで停止
 # --------------------------
 #  設定
 # --------------------------
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOG_DIR="${PROJECT_DIR}/logs"
 STARTUP_LOG="${LOG_DIR}/startup.log"
 

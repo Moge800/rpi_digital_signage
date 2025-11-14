@@ -4,7 +4,8 @@
 
 set -e
 
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SERVICE_NAME="digital-signage"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 
@@ -39,7 +40,7 @@ User=${ACTUAL_USER}
 WorkingDirectory=${PROJECT_DIR}
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/${ACTUAL_USER}/.Xauthority"
-ExecStart=${PROJECT_DIR}/startup.sh
+ExecStart=${PROJECT_DIR}/scripts/startup.sh
 Restart=always
 RestartSec=10
 StandardOutput=append:${PROJECT_DIR}/logs/service.log
@@ -53,7 +54,7 @@ echo "Service file created: ${SERVICE_FILE}"
 
 # startup.shに実行権限付与
 echo "Setting execute permission on startup.sh..."
-chmod +x "${PROJECT_DIR}/startup.sh"
+chmod +x "${PROJECT_DIR}/scripts/startup.sh"
 
 # systemdに反映
 echo "Reloading systemd daemon..."

@@ -6,7 +6,8 @@ set -e
 
 SERVICE_NAME="digital-signage"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 echo "========================================="
 echo "Digital Signage Uninstaller"

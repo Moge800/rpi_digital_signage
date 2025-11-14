@@ -10,9 +10,9 @@
 
 | ファイル | 用途 |
 |---------|------|
-| `startup.sh` | アプリケーション起動スクリプト |
-| `startup_service.sh` | systemdサービスインストーラー |
-| `uninstall.sh` | アンインストールスクリプト |
+| `scripts/startup.sh` | アプリケーション起動スクリプト |
+| `scripts/startup_service.sh` | systemdサービスインストーラー |
+| `scripts/uninstall.sh` | アンインストールスクリプト |
 
 ---
 
@@ -32,14 +32,14 @@ sudo apt install -y chromium-browser
 ### 2. 実行権限の付与
 
 ```bash
-chmod +x startup.sh startup_service.sh
+chmod +x scripts/*.sh
 ```
 
 ### 3. 手動起動テスト
 
 ```bash
 # Kioskモードで起動
-./startup.sh
+./scripts/startup.sh
 ```
 
 **期待される動作**:
@@ -56,7 +56,7 @@ chmod +x startup.sh startup_service.sh
 
 ```bash
 # systemdサービスとして登録
-sudo ./startup_service.sh
+sudo ./scripts/startup_service.sh
 ```
 
 **実行後の確認**:
@@ -106,7 +106,7 @@ sudo systemctl disable digital-signage
 
 ```bash
 # アンインストールスクリプト実行
-sudo ./uninstall.sh
+sudo ./scripts/uninstall.sh
 ```
 
 **実行内容**:
