@@ -96,6 +96,19 @@ class PLCClient(BasePLCClient):
         self.connected = False
         self.connect()
 
+    def __del__(self) -> None:
+        """デストラクタ: インスタンス破棄時にPLC接続をクローズ
+
+        メモリーリーク防止のため、ガベージコレクション時に自動的に切断する。
+        """
+        try:
+            if hasattr(self, "connected") and self.connected:
+                self.disconnect()
+                logger.debug("PLCClient cleaned up in destructor")
+        except Exception as e:
+            # デストラクタ内での例外は握りつぶす（Python仕様）
+            logger.warning(f"Error during PLCClient cleanup: {e}")
+
     @classmethod
     def get_instance(cls, settings: Settings | None = None) -> "PLCClient":
         """シングルトンインスタンスを取得

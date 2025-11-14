@@ -51,6 +51,22 @@ if USE_PLC:
         return get_plc_client()
 
     client = cache_plc_client()
+
+    # セッション終了時のクリーンアップ登録（初回のみ）
+    if "cleanup_registered" not in st.session_state:
+        import atexit
+
+        def cleanup_plc():
+            """アプリケーション終了時にPLC接続をクリーンアップ"""
+            try:
+                if client and client.connected:
+                    client.disconnect()
+                    logger.info("PLC connection closed on app exit")
+            except Exception as e:
+                logger.warning(f"Error during PLC cleanup: {e}")
+
+        atexit.register(cleanup_plc)
+        st.session_state["cleanup_registered"] = True
     try:
         words = client.read_words("D100", size=10)
         bits = client.read_bits("M100", size=10)

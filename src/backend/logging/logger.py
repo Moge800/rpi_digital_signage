@@ -27,8 +27,11 @@ def setup_logger(
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    # 既存のハンドラをクリア（重複防止）
+    # 既存のハンドラをクリア（重複防止 + ファイルハンドル解放）
     if logger.handlers:
+        for handler in logger.handlers[:]:
+            handler.close()  # ファイルハンドルを明示的に閉じる
+            logger.removeHandler(handler)
         logger.handlers.clear()
 
     # フォーマッタ
