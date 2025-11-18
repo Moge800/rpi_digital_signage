@@ -7,56 +7,7 @@
 import plotly.graph_objects as go
 import streamlit as st
 from schemas import ProductionData
-
-
-def get_theme_colors(theme: str = "dark") -> dict[str, str]:
-    """テーマに応じた色設定を取得
-
-    Args:
-        theme: "dark" または "light"
-
-    Returns:
-        dict[str, str]: 色設定辞書
-            - bg_color: 背景色
-            - text_color: テキスト色
-            - gauge_bg: ゲージ背景色
-            - gauge_bar: ゲージバー色
-            - gauge_step_1: ゲージステップ1色 (0-80%)
-            - gauge_step_2: ゲージステップ2色 (80-100%)
-            - status_ok_bg: 正常ステータス背景色
-            - status_warn_bg: 警告ステータス背景色
-            - status_alarm_bg: 異常ステータス背景色
-    """
-    if theme == "light":
-        return {
-            "bg_color": "#ffffff",
-            "text_color": "#000000",
-            "gauge_bg": "#f5f5f5",
-            "gauge_bar": "#31c77f",
-            "gauge_step_1": "#e0e0e0",
-            "gauge_step_2": "#c0c0c0",
-            "status_ok_bg": "#c8e6c9",
-            "status_ok_border": "#4caf50",
-            "status_warn_bg": "#fff9c4",
-            "status_warn_border": "#ffc107",
-            "status_alarm_bg": "#ffcdd2",
-            "status_alarm_border": "#f44336",
-        }
-    else:  # dark (デフォルト)
-        return {
-            "bg_color": "#000000",
-            "text_color": "#f5f5f5",
-            "gauge_bg": "#000000",
-            "gauge_bar": "#31c77f",
-            "gauge_step_1": "#333333",
-            "gauge_step_2": "#555555",
-            "status_ok_bg": "#145c32",
-            "status_ok_border": "#1f7e46",
-            "status_warn_bg": "#744000",
-            "status_warn_border": "#f0a000",
-            "status_alarm_bg": "#7a0000",
-            "status_alarm_border": "#ff3333",
-        }
+from frontend.styles import get_theme_colors
 
 
 def get_status_info(alarm: bool, progress: float) -> tuple[str, str]:
