@@ -4,6 +4,22 @@ import time
 from typing import Optional
 
 
+def stop_process(
+    process: Optional[subprocess.Popen], name: str, logger
+) -> None:
+    """プロセスを安全に終了する
+
+    Args:
+        process: 終了するプロセス（Noneの場合は何もしない）
+        name: プロセス名（ログ出力用）
+        logger: ロガーインスタンス
+    """
+    if process:
+        logger.info(f"Stopping {name}...")
+        process.terminate()
+        process.wait()
+
+
 def start_streamlit() -> subprocess.Popen:
     """Streamlitサーバーをバックグラウンドで起動
 
@@ -127,16 +143,8 @@ def main() -> None:
 
     finally:
         # クリーンアップ
-        if streamlit_process:
-            launcher_logger.info("Stopping Streamlit server...")
-            streamlit_process.terminate()
-            streamlit_process.wait()
-
-        if browser_process:
-            launcher_logger.info("Stopping Kiosk browser...")
-            browser_process.terminate()
-            browser_process.wait()
-
+        stop_process(streamlit_process, "Streamlit server", launcher_logger)
+        stop_process(browser_process, "Kiosk browser", launcher_logger)
         sys.exit(0)
 
 
