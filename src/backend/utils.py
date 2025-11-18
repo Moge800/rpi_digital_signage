@@ -31,6 +31,16 @@ def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     return settings.LOG_LEVEL
 
 
+def get_kiosk_mode() -> bool:
+    """Kioskモード設定を取得
+
+    Returns:
+        bool: Kioskモードが有効ならTrue
+    """
+    settings = Settings()
+    return settings.KIOSK_MODE
+
+
 def get_config_data(production_type: int) -> ProductionTypeConfig:
     """指定された機種番号に対応する機種設定を取得する
 

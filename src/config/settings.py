@@ -21,6 +21,7 @@ class Settings(BaseSettings):
         REFRESH_INTERVAL: フロントエンド自動更新間隔(秒)
         LOG_LEVEL: ログレベル (DEBUG/INFO/WARNING/ERROR)
         THEME: UIテーマ (dark: ダークモード, light: ライトモード)
+        KIOSK_MODE: Kioskモード (True: フルスクリーン自動起動, False: 通常モード)
     """
 
     PLC_IP: IPvAnyAddress
@@ -34,6 +35,7 @@ class Settings(BaseSettings):
     REFRESH_INTERVAL: float = 10.0
     LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     THEME: Literal["dark", "light"] = "dark"
+    KIOSK_MODE: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

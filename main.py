@@ -1,18 +1,7 @@
 import subprocess
 import sys
-import os
 import time
-import signal
 from typing import Optional
-
-
-def get_kiosk_mode() -> bool:
-    """Kioskモード設定を取得
-
-    Returns:
-        bool: Kioskモードが有効ならTrue
-    """
-    return os.getenv("KIOSK_MODE", "false").lower() == "true"
 
 
 def start_streamlit() -> subprocess.Popen:
@@ -90,15 +79,18 @@ def start_kiosk_browser(
     return None
 
 
-def main():
+def main() -> None:
     """Streamlitアプリケーションを起動する"""
     from src.backend.logging import launcher_logger
+    from src.backend.utils import get_kiosk_mode
 
+    # メイン処理
     kiosk_mode = get_kiosk_mode()
     streamlit_process: Optional[subprocess.Popen] = None
     browser_process: Optional[subprocess.Popen] = None
 
     try:
+        # Kioskモード判定 .envにて設定
         if kiosk_mode:
             launcher_logger.info("Kiosk mode enabled")
 
