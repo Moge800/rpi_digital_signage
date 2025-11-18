@@ -6,29 +6,28 @@ from backend.logging import backend_logger as logger
 from typing import Literal
 from datetime import datetime
 
+# 設定のシングルトンインスタンス（モジュールレベルで1回だけ初期化）
+_settings = Settings()
+
 
 def get_use_plc() -> bool:
     """USE_PLC設定を取得"""
-    settings = Settings()
-    return settings.USE_PLC
+    return _settings.USE_PLC
 
 
 def get_line_name() -> str:
     """LINE_NAME設定を取得"""
-    settings = Settings()
-    return settings.LINE_NAME
+    return _settings.LINE_NAME
 
 
 def get_refresh_interval() -> float:
     """フロントエンドのリフレッシュ間隔（秒）を取得"""
-    settings = Settings()
-    return settings.REFRESH_INTERVAL
+    return _settings.REFRESH_INTERVAL
 
 
 def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
     """ログレベルを取得"""
-    settings = Settings()
-    return settings.LOG_LEVEL
+    return _settings.LOG_LEVEL
 
 
 def get_kiosk_mode() -> bool:
@@ -37,8 +36,7 @@ def get_kiosk_mode() -> bool:
     Returns:
         bool: Kioskモードが有効ならTrue
     """
-    settings = Settings()
-    return settings.KIOSK_MODE
+    return _settings.KIOSK_MODE
 
 
 def get_config_data(production_type: int) -> ProductionTypeConfig:
