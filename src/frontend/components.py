@@ -130,7 +130,11 @@ def render_production_metrics(data: ProductionData, progress: float) -> None:
     # パレット情報（最重要）
     required_pallets = data.plan / data.fully
     st.markdown(
-        f"<div class='kpi-value-big' style='text-align: center; margin-top: 1rem; color: #31c77f;'>PL {data.remain_pallet:.1f} <span style='font-size: 0.6em; color: #888;'>/ {required_pallets:.1f}</span></div>",
+        f"<div class='kpi-value-big' style='text-align: center; margin-top: 1rem;'>{data.remain_pallet:.1f} <span style='font-size: 0.6em; color: #888;'>/ {required_pallets:.1f}</span></div>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<div class='kpi-label' style='text-align: center; margin-top: -10px;'>残PL / 総PL</div>",
         unsafe_allow_html=True,
     )
 
