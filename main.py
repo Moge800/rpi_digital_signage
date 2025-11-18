@@ -4,9 +4,7 @@ import time
 from typing import Optional
 
 
-def stop_process(
-    process: Optional[subprocess.Popen], name: str, logger
-) -> None:
+def stop_process(process: Optional[subprocess.Popen], name: str, logger) -> None:
     """プロセスを安全に終了する
 
     Args:
