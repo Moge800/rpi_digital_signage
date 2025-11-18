@@ -113,6 +113,60 @@ def calculate_remain_minutes(
     return round(remain_minute, decimals) if decimals is not None else remain_minute
 
 
+def _fetch_word(
+    client: PLCClient,
+    device_address: str,
+    field_name: str,
+    default: int = 0,
+) -> int:
+    """PLCからワードデータを取得する汎用関数
+
+    Args:
+        client: PLCクライアント
+        device_address: デバイスアドレス
+        field_name: フィールド名（ログ出力用）
+        default: エラー時のデフォルト値
+
+    Returns:
+        int: 取得したワード値
+    """
+    try:
+        data = client.read_words(device_address, size=1)
+        return data[0]
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(
+            f"Failed to get {field_name} from PLC: {e}, using default {default}"
+        )
+        return default
+
+
+def _fetch_bit(
+    client: PLCClient,
+    device_address: str,
+    field_name: str,
+    default: bool = False,
+) -> bool:
+    """PLCからビットデータを取得する汎用関数
+
+    Args:
+        client: PLCクライアント
+        device_address: デバイスアドレス
+        field_name: フィールド名（ログ出力用）
+        default: エラー時のデフォルト値
+
+    Returns:
+        bool: 取得したビット値
+    """
+    try:
+        data = client.read_bits(device_address, size=1)
+        return bool(data[0])
+    except (ConnectionError, OSError, ValueError, IndexError) as e:
+        logger.warning(
+            f"Failed to get {field_name} from PLC: {e}, using default {default}"
+        )
+        return default
+
+
 def fetch_production_timestamp(client: PLCClient, head_device: str) -> datetime:
     """PLCから生産データのタイムスタンプを取得
 
@@ -168,15 +222,9 @@ def fetch_production_type(client: PLCClient, device_address: str) -> int:
         device_address: 機種番号格納デバイスアドレス
 
     Returns:
-        int: 生産機種番号
+        int: 生産機種番号（エラー時は0）
     """
-    try:
-        data = client.read_words(device_address, size=1)
-        production_type = data[0]
-        return production_type
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
-        logger.warning(f"Failed to get production type from PLC: {e}, using default 0")
-        return 0  # 0をデフォルト値として返す,0番は存在しない機種
+    return _fetch_word(client, device_address, "production type", default=0)
 
 
 def fetch_plan(client: PLCClient, device_address: str) -> int:
@@ -187,15 +235,9 @@ def fetch_plan(client: PLCClient, device_address: str) -> int:
         device_address: 計画数格納デバイスアドレス
 
     Returns:
-        int: 生産計画数
+        int: 生産計画数（エラー時は0）
     """
-    try:
-        data = client.read_words(device_address, size=1)
-        plan = data[0]
-        return plan
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
-        logger.warning(f"Failed to get production plan from PLC: {e}, using default 0")
-        return 0  # 0をデフォルト値として返す
+    return _fetch_word(client, device_address, "production plan", default=0)
 
 
 def fetch_actual(client: PLCClient, device_address: str) -> int:
@@ -206,17 +248,9 @@ def fetch_actual(client: PLCClient, device_address: str) -> int:
         device_address: 実績数格納デバイスアドレス
 
     Returns:
-        int: 生産実績数
+        int: 生産実績数（エラー時は0）
     """
-    try:
-        data = client.read_words(device_address, size=1)
-        actual = data[0]
-        return actual
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
-        logger.warning(
-            f"Failed to get production actual from PLC: {e}, using default 0"
-        )
-        return 0  # 0をデフォルト値として返す
+    return _fetch_word(client, device_address, "production actual", default=0)
 
 
 def fetch_in_operating(client: PLCClient, device_address: str) -> bool:
@@ -227,17 +261,9 @@ def fetch_in_operating(client: PLCClient, device_address: str) -> bool:
         device_address: 稼働中フラグ格納デバイスアドレス
 
     Returns:
-        bool: 稼働中フラグ
+        bool: 稼働中フラグ（エラー時はFalse）
     """
-    try:
-        data = client.read_bits(device_address, size=1)
-        in_operating = bool(data[0])
-        return in_operating
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
-        logger.warning(
-            f"Failed to get in_operating flag from PLC: {e}, using default False"
-        )
-        return False  # Falseをデフォルト値として返す
+    return _fetch_bit(client, device_address, "in_operating flag", default=False)
 
 
 def fetch_alarm_flag(client: PLCClient, device_address: str) -> bool:
@@ -248,15 +274,9 @@ def fetch_alarm_flag(client: PLCClient, device_address: str) -> bool:
         device_address: アラームフラグ格納デバイスアドレス
 
     Returns:
-        bool: アラームフラグ
+        bool: アラームフラグ（エラー時はFalse）
     """
-    try:
-        data = client.read_bits(device_address, size=1)
-        alarm_flag = bool(data[0])
-        return alarm_flag
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
-        logger.warning(f"Failed to get alarm flag from PLC: {e}, using default False")
-        return False  # Falseをデフォルト値として返す
+    return _fetch_bit(client, device_address, "alarm flag", default=False)
 
 
 def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
