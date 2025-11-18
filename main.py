@@ -1,7 +1,12 @@
 import subprocess
 import sys
 import time
+from pathlib import Path
 from typing import Optional
+
+# プロジェクトルートをPythonパスに追加（インポートパス解決のため）
+project_root = Path(__file__).parent
+sys.path.insert(0, str(project_root / "src"))
 
 
 def stop_process(process: Optional[subprocess.Popen], name: str, logger) -> None:
