@@ -4,14 +4,15 @@
 モジュールレベルでSettingsをシングルトン化し、効率的にアクセス。
 """
 
-from typing import Literal
-
 from config.production_config import ProductionConfigManager
-from config.settings import Settings
+from config.settings import LogLevel, Settings
 from schemas import ProductionTypeConfig
 
 # 設定のシングルトンインスタンス（モジュールレベルで1回だけ初期化）
 _settings = Settings()
+
+# ProductionConfigManagerのシングルトンインスタンス（モジュールレベルで1回だけ初期化）
+_config_manager = ProductionConfigManager()
 
 
 def get_use_plc() -> bool:
@@ -41,11 +42,11 @@ def get_refresh_interval() -> float:
     return _settings.REFRESH_INTERVAL
 
 
-def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
+def get_log_level() -> LogLevel:
     """ログレベルを取得
 
     Returns:
-        Literal["DEBUG", "INFO", "WARNING", "ERROR"]: ログレベル
+        LogLevel: ログレベル (Enum)
     """
     return _settings.LOG_LEVEL
 
@@ -62,11 +63,14 @@ def get_kiosk_mode() -> bool:
 def get_config_data(production_type: int) -> ProductionTypeConfig:
     """指定された機種番号に対応する機種設定を取得する
 
+    Note:
+        モジュールレベルでキャッシュされたProductionConfigManagerを使用。
+        パフォーマンス最適化のため、繰り返し呼び出しても初期化は1回のみ。
+
     Args:
         production_type: 機種番号 (0-15)
 
     Returns:
         ProductionTypeConfig: 機種設定オブジェクト
     """
-    config_manager = ProductionConfigManager()
-    return config_manager.get_config(production_type)
+    return _config_manager.get_config(production_type)
