@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from backend.plc.plc_client import PLCClient
-from backend.utils import fetch_production_timestamp
+from backend.plc.plc_fetcher import fetch_production_timestamp
 
 
 class TestFetchProductionTimestamp:
     """PLC日時取得のテスト (モックでPLC通信を模倣)"""
 
-    @patch("backend.utils.PLCClient")
+    @patch("backend.plc.plc_fetcher.PLCClient")
     def test_fetch_timestamp_bcd_conversion(self, mock_plc_class):
         """BCD形式の日時データが正しくdatetimeに変換されるか"""
         # モックPLCクライアントのセットアップ
@@ -28,7 +28,7 @@ class TestFetchProductionTimestamp:
         assert result == datetime(2025, 11, 13, 14, 30, 45)
         mock_client.read_words.assert_called_once_with("SD210", size=3)
 
-    @patch("backend.utils.PLCClient")
+    @patch("backend.plc.plc_fetcher.PLCClient")
     def test_fetch_timestamp_connection_error_fallback(self, mock_plc_class):
         """PLC接続エラー時に現在時刻にフォールバックするか"""
         mock_client = MagicMock(spec=PLCClient)
@@ -42,7 +42,7 @@ class TestFetchProductionTimestamp:
         # 現在時刻の範囲内であることを確認
         assert before <= result <= after
 
-    @patch("backend.utils.PLCClient")
+    @patch("backend.plc.plc_fetcher.PLCClient")
     def test_fetch_timestamp_invalid_data_fallback(self, mock_plc_class):
         """不正なデータ時に現在時刻にフォールバックするか"""
         mock_client = MagicMock(spec=PLCClient)

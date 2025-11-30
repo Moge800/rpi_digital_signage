@@ -2,7 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
-from backend.utils import (
+from backend.config_helpers import get_kiosk_mode
+from backend.plc.plc_fetcher import (
     _fetch_bit,
     _fetch_word,
     fetch_actual,
@@ -11,7 +12,6 @@ from backend.utils import (
     fetch_in_operating,
     fetch_plan,
     fetch_production_type,
-    get_kiosk_mode,
     get_plc_device_dict,
 )
 
@@ -19,7 +19,7 @@ from backend.utils import (
 class TestFetchWordHelper:
     """_fetch_word汎用関数のテスト"""
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_word_success(self, mock_logger):
         """正常にワードデータを取得"""
         mock_client = MagicMock()
@@ -31,7 +31,7 @@ class TestFetchWordHelper:
         mock_client.read_words.assert_called_once_with("D100", size=1)
         mock_logger.warning.assert_not_called()
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_word_connection_error(self, mock_logger):
         """接続エラー時はデフォルト値を返す"""
         mock_client = MagicMock()
@@ -42,7 +42,7 @@ class TestFetchWordHelper:
         assert result == 999
         mock_logger.warning.assert_called_once()
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_word_index_error(self, mock_logger):
         """データ取得失敗時はデフォルト値を返す"""
         mock_client = MagicMock()
@@ -57,7 +57,7 @@ class TestFetchWordHelper:
 class TestFetchBitHelper:
     """_fetch_bit汎用関数のテスト"""
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_bit_success_true(self, mock_logger):
         """正常にビットデータを取得（True）"""
         mock_client = MagicMock()
@@ -69,7 +69,7 @@ class TestFetchBitHelper:
         mock_client.read_bits.assert_called_once_with("M100", size=1)
         mock_logger.warning.assert_not_called()
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_bit_success_false(self, mock_logger):
         """正常にビットデータを取得（False）"""
         mock_client = MagicMock()
@@ -80,7 +80,7 @@ class TestFetchBitHelper:
         assert result is False
         mock_logger.warning.assert_not_called()
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_bit_connection_error(self, mock_logger):
         """接続エラー時はデフォルト値を返す"""
         mock_client = MagicMock()
@@ -95,7 +95,7 @@ class TestFetchBitHelper:
 class TestFetchFunctions:
     """fetch_*関数のテスト（ヘルパー経由）"""
 
-    @patch("backend.utils._fetch_word")
+    @patch("backend.plc.plc_fetcher._fetch_word")
     def test_fetch_production_type(self, mock_fetch_word):
         """機種番号取得関数のテスト"""
         mock_fetch_word.return_value = 5
@@ -108,7 +108,7 @@ class TestFetchFunctions:
             mock_client, "D200", "production type", default=0
         )
 
-    @patch("backend.utils._fetch_word")
+    @patch("backend.plc.plc_fetcher._fetch_word")
     def test_fetch_plan(self, mock_fetch_word):
         """計画数取得関数のテスト"""
         mock_fetch_word.return_value = 10000
@@ -121,7 +121,7 @@ class TestFetchFunctions:
             mock_client, "D300", "production plan", default=0
         )
 
-    @patch("backend.utils._fetch_word")
+    @patch("backend.plc.plc_fetcher._fetch_word")
     def test_fetch_actual(self, mock_fetch_word):
         """実績数取得関数のテスト"""
         mock_fetch_word.return_value = 7500
@@ -134,7 +134,7 @@ class TestFetchFunctions:
             mock_client, "D400", "production actual", default=0
         )
 
-    @patch("backend.utils._fetch_bit")
+    @patch("backend.plc.plc_fetcher._fetch_bit")
     def test_fetch_in_operating(self, mock_fetch_bit):
         """稼働中フラグ取得関数のテスト"""
         mock_fetch_bit.return_value = True
@@ -147,7 +147,7 @@ class TestFetchFunctions:
             mock_client, "M500", "in_operating flag", default=False
         )
 
-    @patch("backend.utils._fetch_bit")
+    @patch("backend.plc.plc_fetcher._fetch_bit")
     def test_fetch_alarm_flag(self, mock_fetch_bit):
         """アラームフラグ取得関数のテスト"""
         mock_fetch_bit.return_value = False
@@ -164,7 +164,7 @@ class TestFetchFunctions:
 class TestFetchAlarmMsg:
     """fetch_alarm_msg関数のテスト"""
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_alarm_msg_success(self, mock_logger):
         """正常にアラームメッセージを取得"""
         mock_client = MagicMock()
@@ -188,7 +188,7 @@ class TestFetchAlarmMsg:
         mock_client.read_words.assert_called_once_with("D700", size=10)
         mock_logger.warning.assert_not_called()
 
-    @patch("backend.utils.logger")
+    @patch("backend.plc.plc_fetcher.logger")
     def test_fetch_alarm_msg_connection_error(self, mock_logger):
         """接続エラー時は空文字を返す"""
         mock_client = MagicMock()

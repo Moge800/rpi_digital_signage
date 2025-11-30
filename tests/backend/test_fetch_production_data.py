@@ -1,27 +1,27 @@
-"""backend.utils.fetch_production_data()のテスト"""
+"""backend.plc.plc_fetcher.fetch_production_data()のテスト"""
 
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend.utils import fetch_production_data
+from backend.plc.plc_fetcher import fetch_production_data
 from schemas.production import ProductionData
 
 
 class TestFetchProductionData:
     """fetch_production_data()関数のテスト (モック使用)"""
 
-    @patch("backend.utils.fetch_production_timestamp")
-    @patch("backend.utils.fetch_alarm_msg")
-    @patch("backend.utils.fetch_alarm_flag")
-    @patch("backend.utils.fetch_in_operating")
-    @patch("backend.utils.fetch_actual")
-    @patch("backend.utils.fetch_plan")
-    @patch("backend.utils.fetch_production_type")
-    @patch("backend.utils.get_plc_device_dict")
-    @patch("backend.utils.get_line_name")
-    @patch("backend.utils.get_config_data")
+    @patch("backend.plc.plc_fetcher.fetch_production_timestamp")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_msg")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_flag")
+    @patch("backend.plc.plc_fetcher.fetch_in_operating")
+    @patch("backend.plc.plc_fetcher.fetch_actual")
+    @patch("backend.plc.plc_fetcher.fetch_plan")
+    @patch("backend.plc.plc_fetcher.fetch_production_type")
+    @patch("backend.plc.plc_fetcher.get_plc_device_dict")
+    @patch("backend.config_helpers.get_line_name")
+    @patch("backend.config_helpers.get_config_data")
     def test_fetch_production_data_returns_production_data(
         self,
         mock_get_config,
@@ -75,16 +75,16 @@ class TestFetchProductionData:
         assert result.actual == 20000
         assert result.in_operating is True
 
-    @patch("backend.utils.fetch_production_timestamp")
-    @patch("backend.utils.fetch_alarm_msg")
-    @patch("backend.utils.fetch_alarm_flag")
-    @patch("backend.utils.fetch_in_operating")
-    @patch("backend.utils.fetch_actual")
-    @patch("backend.utils.fetch_plan")
-    @patch("backend.utils.fetch_production_type")
-    @patch("backend.utils.get_plc_device_dict")
-    @patch("backend.utils.get_line_name")
-    @patch("backend.utils.get_config_data")
+    @patch("backend.plc.plc_fetcher.fetch_production_timestamp")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_msg")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_flag")
+    @patch("backend.plc.plc_fetcher.fetch_in_operating")
+    @patch("backend.plc.plc_fetcher.fetch_actual")
+    @patch("backend.plc.plc_fetcher.fetch_plan")
+    @patch("backend.plc.plc_fetcher.fetch_production_type")
+    @patch("backend.plc.plc_fetcher.get_plc_device_dict")
+    @patch("backend.config_helpers.get_line_name")
+    @patch("backend.config_helpers.get_config_data")
     def test_fetch_production_data_calculates_remain_values(
         self,
         mock_get_config,
@@ -132,16 +132,16 @@ class TestFetchProductionData:
         # 残り10000個 → 10000 / 2800 = 3.57...
         assert result.remain_pallet == pytest.approx(3.57, rel=0.01)
 
-    @patch("backend.utils.fetch_production_timestamp")
-    @patch("backend.utils.fetch_alarm_msg")
-    @patch("backend.utils.fetch_alarm_flag")
-    @patch("backend.utils.fetch_in_operating")
-    @patch("backend.utils.fetch_actual")
-    @patch("backend.utils.fetch_plan")
-    @patch("backend.utils.fetch_production_type")
-    @patch("backend.utils.get_plc_device_dict")
-    @patch("backend.utils.get_line_name")
-    @patch("backend.utils.get_config_data")
+    @patch("backend.plc.plc_fetcher.fetch_production_timestamp")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_msg")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_flag")
+    @patch("backend.plc.plc_fetcher.fetch_in_operating")
+    @patch("backend.plc.plc_fetcher.fetch_actual")
+    @patch("backend.plc.plc_fetcher.fetch_plan")
+    @patch("backend.plc.plc_fetcher.fetch_production_type")
+    @patch("backend.plc.plc_fetcher.get_plc_device_dict")
+    @patch("backend.config_helpers.get_line_name")
+    @patch("backend.config_helpers.get_config_data")
     def test_fetch_production_data_uses_plc_timestamp(
         self,
         mock_get_config,

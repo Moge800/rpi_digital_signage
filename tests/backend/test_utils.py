@@ -2,9 +2,8 @@
 
 import pytest
 
-from backend.utils import (
-    calculate_remain_minutes,
-    calculate_remain_pallet,
+from backend.calculators import calculate_remain_minutes, calculate_remain_pallet
+from backend.config_helpers import (
     get_line_name,
     get_log_level,
     get_refresh_interval,
