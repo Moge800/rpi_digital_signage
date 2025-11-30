@@ -82,7 +82,7 @@ if USE_PLC:
     if "system_clock_synced" not in st.session_state:
         try:
             plc_time = fetch_production_timestamp(
-                client, get_plc_device_dict().TIME_DEVICE
+                client, get_plc_device_dict()["TIME_DEVICE"]
             )
             if set_system_clock(plc_time):
                 logger.info(f"System clock synced with PLC: {plc_time}")

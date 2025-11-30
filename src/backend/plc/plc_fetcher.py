@@ -11,6 +11,9 @@ from backend.plc.plc_client import PLCClient
 from config.settings import PLCDeviceList
 from schemas import ProductionData
 
+# PLCデバイス設定のキャッシュ（モジュールレベルで1回だけ初期化）
+_plc_device_list = PLCDeviceList()
+
 
 def _fetch_word(
     client: PLCClient,
@@ -204,18 +207,21 @@ def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
 def get_plc_device_dict() -> dict[str, str]:
     """PLCデバイスリスト設定を取得
 
+    Note:
+        モジュールレベルでキャッシュされたPLCDeviceListを使用。
+        パフォーマンス最適化のため、繰り返し呼び出しても初期化は1回のみ。
+
     Returns:
         dict[str, str]: PLCデバイスアドレスの辞書
     """
-    device_list_settings = PLCDeviceList()
     return {
-        "TIME_DEVICE": device_list_settings.TIME_DEVICE,
-        "PRODUCTION_TYPE_DEVICE": device_list_settings.PRODUCTION_TYPE_DEVICE,
-        "PLAN_DEVICE": device_list_settings.PLAN_DEVICE,
-        "ACTUAL_DEVICE": device_list_settings.ACTUAL_DEVICE,
-        "ALARM_FLAG_DEVICE": device_list_settings.ALARM_FLAG_DEVICE,
-        "ALARM_MSG_DEVICE": device_list_settings.ALARM_MSG_DEVICE,
-        "IN_OPERATING_DEVICE": device_list_settings.IN_OPERATING_DEVICE,
+        "TIME_DEVICE": _plc_device_list.TIME_DEVICE,
+        "PRODUCTION_TYPE_DEVICE": _plc_device_list.PRODUCTION_TYPE_DEVICE,
+        "PLAN_DEVICE": _plc_device_list.PLAN_DEVICE,
+        "ACTUAL_DEVICE": _plc_device_list.ACTUAL_DEVICE,
+        "ALARM_FLAG_DEVICE": _plc_device_list.ALARM_FLAG_DEVICE,
+        "ALARM_MSG_DEVICE": _plc_device_list.ALARM_MSG_DEVICE,
+        "IN_OPERATING_DEVICE": _plc_device_list.IN_OPERATING_DEVICE,
     }
 
 
