@@ -4,6 +4,47 @@ from datetime import datetime
 from backend.logging import backend_logger as logger
 
 
+def is_raspberry_pi() -> bool:
+    """Raspberry Pi上で動作しているかを判定する
+
+    Returns:
+        bool: Raspberry Pi上であればTrue、そうでなければFalse
+    """
+    try:
+        with open("/proc/device-tree/model", "r") as f:
+            model = f.read().lower()
+            return "raspberry pi" in model
+    except FileNotFoundError:
+        return False
+
+
+def is_windows() -> bool:
+    """Windows上で動作しているかを判定する
+
+    Returns:
+        bool: Windows上であればTrue、そうでなければFalse
+    """
+    return os.name == "nt"
+
+
+def is_linux() -> bool:
+    """Linux上で動作しているかを判定する
+
+    Returns:
+        bool: Linux上であればTrue、そうでなければFalse
+    """
+    return os.name == "posix" and not is_raspberry_pi()
+
+
+def is_mac() -> bool:
+    """macOS上で動作しているかを判定する
+
+    Returns:
+        bool: macOS上であればTrue、そうでなければFalse
+    """
+    return os.uname().sysname == "Darwin"
+
+
 def set_system_clock(target_time: datetime) -> bool:
     """システム時計を設定する
 
@@ -23,7 +64,7 @@ def set_system_clock(target_time: datetime) -> bool:
         PermissionError: 権限不足の場合
     """
     try:
-        if os.name == "nt":  # Windows
+        if is_windows():  # Windows
             subprocess.run(
                 ["date", target_time.strftime("%Y-%m-%d")],
                 check=True,
