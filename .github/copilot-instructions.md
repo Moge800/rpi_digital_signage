@@ -17,12 +17,22 @@ Raspberry Pi向けのデジタルサイネージシステム。三菱電機製PL
 src/
 ├── backend/          # バックエンドロジック
 │   ├── plc/         # PLC通信層
+│   │   ├── plc_client.py      # PLCクライアント(シングルトン)
+│   │   └── plc_fetcher.py     # データ取得関数群 (NEW)
 │   ├── logging/     # ロギング設定
-│   └── utils.py     # ヘルパー関数
+│   ├── config_helpers.py      # 設定アクセス (NEW)
+│   ├── calculators.py         # 計算ロジック (NEW)
+│   └── utils.py     # [DEPRECATED] 後方互換性shim
 ├── frontend/        # Streamlit UI
 ├── config/          # 設定管理
 └── schemas/         # Pydanticデータモデル
 ```
+
+**モジュール責務分離 (2025-12-01リファクタリング)**:
+- `plc_fetcher.py`: PLC通信・データ取得 (293行)
+- `config_helpers.py`: Settings/設定アクセス (75行)
+- `calculators.py`: ビジネスロジック計算 (64行)
+- `utils.py`: 非推奨shim (将来削除予定)
 
 ## コーディング規約
 

@@ -101,7 +101,7 @@ def start_kiosk_browser(
 def main() -> None:
     """Streamlitアプリケーションを起動する"""
     from src.backend.logging import launcher_logger
-    from src.backend.utils import get_kiosk_mode
+    from src.backend.config_helpers import get_kiosk_mode
 
     # メイン処理
     kiosk_mode = get_kiosk_mode()

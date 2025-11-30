@@ -1,116 +1,15 @@
-from backend.plc.plc_client import PLCClient
-from schemas import ProductionData, ProductionTypeConfig
-from config.production_config import ProductionConfigManager
-from config.settings import Settings
-from backend.logging import backend_logger as logger
-from typing import Literal
+"""PLC通信データ取得関数
+
+PLCから各種データ(生産数、アラーム、タイムスタンプ等)を取得する関数群。
+エラーハンドリングを含む汎用的なfetchヘルパー関数も提供。
+"""
+
 from datetime import datetime
 
-# 設定のシングルトンインスタンス（モジュールレベルで1回だけ初期化）
-_settings = Settings()
-
-
-def get_use_plc() -> bool:
-    """USE_PLC設定を取得"""
-    return _settings.USE_PLC
-
-
-def get_line_name() -> str:
-    """LINE_NAME設定を取得"""
-    return _settings.LINE_NAME
-
-
-def get_refresh_interval() -> float:
-    """フロントエンドのリフレッシュ間隔（秒）を取得"""
-    return _settings.REFRESH_INTERVAL
-
-
-def get_log_level() -> Literal["DEBUG", "INFO", "WARNING", "ERROR"]:
-    """ログレベルを取得"""
-    return _settings.LOG_LEVEL
-
-
-def get_kiosk_mode() -> bool:
-    """Kioskモード設定を取得
-
-    Returns:
-        bool: Kioskモードが有効ならTrue
-    """
-    return _settings.KIOSK_MODE
-
-
-def get_config_data(production_type: int) -> ProductionTypeConfig:
-    """指定された機種番号に対応する機種設定を取得する
-
-    Args:
-        production_type: 機種番号 (0-15)
-
-    Returns:
-        ProductionTypeConfig: 機種設定オブジェクト
-    """
-    config_manager = ProductionConfigManager()
-    return config_manager.get_config(production_type)
-
-
-def get_plc_device_dict() -> dict[str, str]:
-    """PLCデバイスリスト設定を取得"""
-    from config.settings import PLCDeviceList
-
-    device_list_settings = PLCDeviceList()
-    return {
-        "TIME_DEVICE": device_list_settings.TIME_DEVICE,
-        "PRODUCTION_TYPE_DEVICE": device_list_settings.PRODUCTION_TYPE_DEVICE,
-        "PLAN_DEVICE": device_list_settings.PLAN_DEVICE,
-        "ACTUAL_DEVICE": device_list_settings.ACTUAL_DEVICE,
-        "ALARM_FLAG_DEVICE": device_list_settings.ALARM_FLAG_DEVICE,
-        "ALARM_MSG_DEVICE": device_list_settings.ALARM_MSG_DEVICE,
-        "IN_OPERATING_DEVICE": device_list_settings.IN_OPERATING_DEVICE,
-    }
-
-
-def calculate_remain_pallet(
-    plan: int, actual: int, production_type: int, decimals: int | None = 2
-) -> float:
-    """残りパレット数を計算する
-
-    Args:
-        plan: 計画生産数
-        actual: 実績生産数
-        production_type: 機種番号 (0-15)
-        decimals: 小数点以下の桁数 (Noneの場合は丸めない)
-
-    Returns:
-        float: 残りパレット数
-    """
-    config = get_config_data(production_type)
-
-    remaining_units = max(0, plan - actual)
-    remain_pallet = remaining_units / config.fully
-
-    return round(remain_pallet, decimals) if decimals is not None else remain_pallet
-
-
-def calculate_remain_minutes(
-    plan: int, actual: int, production_type: int, decimals: int | None = 2
-) -> float:
-    """残り時間(分)を計算
-
-    Args:
-        plan: 計画数
-        actual: 実績数
-        production_type: 機種番号
-        decimals: 小数点以下の桁数 (Noneの場合は丸めない)
-
-    Returns:
-        float: 残り時間(分)
-    """
-    config = get_config_data(production_type)
-
-    remain = plan - actual
-    remain_seconds = remain * config.seconds_per_product  # 残り個数 × 1個あたりの秒数
-    remain_minute = remain_seconds / 60.0
-
-    return round(remain_minute, decimals) if decimals is not None else remain_minute
+from backend.logging import backend_logger as logger
+from backend.plc.plc_client import PLCClient
+from config.settings import PLCDeviceList
+from schemas import ProductionData
 
 
 def _fetch_word(
@@ -302,15 +201,39 @@ def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
         return ""  # 空文字をデフォルト値として返す
 
 
+def get_plc_device_dict() -> dict[str, str]:
+    """PLCデバイスリスト設定を取得
+
+    Returns:
+        dict[str, str]: PLCデバイスアドレスの辞書
+    """
+    device_list_settings = PLCDeviceList()
+    return {
+        "TIME_DEVICE": device_list_settings.TIME_DEVICE,
+        "PRODUCTION_TYPE_DEVICE": device_list_settings.PRODUCTION_TYPE_DEVICE,
+        "PLAN_DEVICE": device_list_settings.PLAN_DEVICE,
+        "ACTUAL_DEVICE": device_list_settings.ACTUAL_DEVICE,
+        "ALARM_FLAG_DEVICE": device_list_settings.ALARM_FLAG_DEVICE,
+        "ALARM_MSG_DEVICE": device_list_settings.ALARM_MSG_DEVICE,
+        "IN_OPERATING_DEVICE": device_list_settings.IN_OPERATING_DEVICE,
+    }
+
+
 def fetch_production_data(client: PLCClient) -> ProductionData:
     """PLCから生産データを一括取得
 
-    将来的な実装例:
-    - fetch_production_timestamp() でタイムスタンプ取得
-    - 各デバイスから計画数、実績数、アラーム情報を取得
-    - ProductionDataに統合して返す
+    各種デバイスから生産情報を取得し、ProductionDataに統合して返す。
+    計算ロジックはcalculators.pyに依存。
+
+    Args:
+        client: PLCクライアント
+
+    Returns:
+        ProductionData: 統合された生産データ
     """
-    # TODO: 実際のPLCデバイスから取得する実装
+    from backend.calculators import calculate_remain_minutes, calculate_remain_pallet
+    from backend.config_helpers import get_config_data, get_line_name
+
     device_dict = get_plc_device_dict()
     line_name = get_line_name()
     production_type = fetch_production_type(

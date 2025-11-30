@@ -22,7 +22,7 @@ from frontend.components import (
 from schemas import ProductionData
 from config.settings import Settings
 from backend.plc.plc_client import get_plc_client, PLCClient
-from backend.utils import get_refresh_interval, get_use_plc
+from backend.config_helpers import get_refresh_interval, get_use_plc
 from backend.logging import app_logger as logger
 
 # --------------------------
@@ -93,7 +93,8 @@ def get_production_data() -> ProductionData:
     Returns:
         ProductionData: 生産データ (現在はランダムなダミーデータ)
     """
-    from backend.utils import calculate_remain_pallet, get_config_data
+    from backend.calculators import calculate_remain_pallet
+    from backend.config_helpers import get_config_data
 
     line_name = settings.LINE_NAME
     production_type = random.randint(0, MAX_PRODUCTION_TYPE)
