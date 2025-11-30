@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import random
 from datetime import datetime
+
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from dotenv import load_dotenv
@@ -21,7 +22,13 @@ from frontend.components import (
 )
 from schemas import ProductionData
 from config.settings import Settings
+from backend.system_utils import set_system_clock
 from backend.plc.plc_client import get_plc_client, PLCClient
+from backend.plc.plc_fetcher import (
+    fetch_production_data,
+    fetch_production_timestamp,
+    get_plc_device_dict,
+)
 from backend.config_helpers import get_refresh_interval, get_use_plc
 from backend.logging import app_logger as logger
 
@@ -39,6 +46,9 @@ ALARM_THRESHOLD = 8000  # アラーム判定の閾値
 ALARM_PROBABILITY = 0.5  # アラーム発生確率
 MAX_PRODUCTION_TYPE = 2  # ダミーモードで使用する最大機種番号
 
+# --------------------------
+#  PLC接続初期化
+# --------------------------
 if USE_PLC:
 
     @st.cache_resource
@@ -67,31 +77,54 @@ if USE_PLC:
 
         atexit.register(cleanup_plc)
         st.session_state["cleanup_registered"] = True
-    try:
-        words = client.read_words("D100", size=10)
-        bits = client.read_bits("M100", size=10)
-    except (ConnectionError, OSError, TimeoutError) as e:
-        st.error(f"PLCからのデータ取得に失敗: {e}")  # UI上にエラー表示
-        logger.error(f"PLC read error: {e}")  # ログファイルに記録
-    except ConnectionRefusedError as e:
-        st.error(f"PLCへの接続が拒否されました: {e}")  # UI上にエラー表示
-        logger.error(f"PLC connection refused: {e}")  # ログファイルに記録
-else:
-    pass
+
+    # システム時刻同期（初回のみ実行）
+    if "system_clock_synced" not in st.session_state:
+        try:
+            plc_time = fetch_production_timestamp(
+                client, get_plc_device_dict().TIME_DEVICE
+            )
+            if set_system_clock(plc_time):
+                logger.info(f"System clock synced with PLC: {plc_time}")
+                st.session_state["system_clock_synced"] = True
+            else:
+                logger.warning("Failed to sync system clock with PLC")
+        except (ConnectionError, OSError, TimeoutError) as e:
+            logger.error(f"PLC time sync error: {e}")
+            st.error(f"PLC時刻同期に失敗しました: {e}")
 
 
 # --------------------------
-#  ダミーデータ取得部
-#  （ここをPLC / DB / APIに差し替え）
+#  データ取得部
 # --------------------------
 def get_production_data() -> ProductionData:
     """生産データを取得する
 
-    現在はダミーデータを生成して返す。
-    TODO: USE_PLC=true時にbackend.utils.fetch_production_data()を呼ぶ実装
+    USE_PLC=true時はPLCから実データを取得。
+    USE_PLC=false時はダミーデータを生成。
 
     Returns:
-        ProductionData: 生産データ (現在はランダムなダミーデータ)
+        ProductionData: 生産データ
+    """
+    if USE_PLC:
+        # PLC実データ取得
+        try:
+            return fetch_production_data(client)
+        except (ConnectionError, OSError, TimeoutError) as e:
+            logger.error(f"PLC data fetch error: {e}")
+            st.error(f"PLCデータ取得エラー: {e}")
+            # エラー時はダミーデータにフォールバック
+            return _get_dummy_data()
+    else:
+        # ダミーモード
+        return _get_dummy_data()
+
+
+def _get_dummy_data() -> ProductionData:
+    """ダミーデータを生成する (内部使用)
+
+    Returns:
+        ProductionData: ランダムなダミーデータ
     """
     from backend.calculators import calculate_remain_pallet
     from backend.config_helpers import get_config_data
