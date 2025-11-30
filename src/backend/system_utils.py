@@ -1,4 +1,5 @@
 import os
+import platform
 import subprocess
 from datetime import datetime
 from backend.logging import backend_logger as logger
@@ -42,7 +43,7 @@ def is_mac() -> bool:
     Returns:
         bool: macOS上であればTrue、そうでなければFalse
     """
-    return os.uname().sysname == "Darwin"
+    return platform.system() == "Darwin"
 
 
 def set_system_clock(target_time: datetime) -> bool:
