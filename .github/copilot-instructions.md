@@ -18,11 +18,11 @@ src/
 ├── backend/          # バックエンドロジック
 │   ├── plc/         # PLC通信層
 │   │   ├── plc_client.py      # PLCクライアント(シングルトン)
-│   │   └── plc_fetcher.py     # データ取得関数群 (NEW)
+│   │   └── plc_fetcher.py     # データ取得関数群
 │   ├── logging/     # ロギング設定
-│   ├── config_helpers.py      # 設定アクセス (NEW)
-│   ├── calculators.py         # 計算ロジック (NEW)
-│   └── utils.py     # [DEPRECATED] 後方互換性shim
+│   ├── config_helpers.py  # 設定アクセス
+│   ├── calculators.py     # 計算ロジック
+│   └── system_utils.py    # システム操作(時刻同期、プラットフォーム判定)
 ├── frontend/        # Streamlit UI
 ├── config/          # 設定管理
 └── schemas/         # Pydanticデータモデル
@@ -30,9 +30,9 @@ src/
 
 **モジュール責務分離 (2025-12-01リファクタリング)**:
 - `plc_fetcher.py`: PLC通信・データ取得 (293行)
-- `config_helpers.py`: Settings/設定アクセス (75行)
+- `config_helpers.py`: Settings/設定アクセス + Enum導入 (75行)
 - `calculators.py`: ビジネスロジック計算 (64行)
-- `utils.py`: 非推奨shim (将来削除予定)
+- `system_utils.py`: OS操作(システム時刻同期、プラットフォーム判定) (102行)
 
 ## コーディング規約
 
@@ -50,7 +50,8 @@ def get_production_data():
 ### 2. 環境変数の扱い
 - `.env`ファイルは必須(`.env.example`をコピー)
 - Pydantic Settingsで型安全に管理
-- `os.getenv()`の直接使用は`utils.py`のヘルパー関数経由で
+- Enum型を活用 (`Theme`, `LogLevel`)
+- 設定アクセスは`config_helpers.py`のヘルパー関数経由
 
 ### 3. エラーハンドリング
 - `Exception`の汎用捕捉は避ける
@@ -92,6 +93,8 @@ import streamlit as st
 # ローカル
 from schemas import ProductionData
 from backend.plc.plc_client import get_plc_client
+from backend.config_helpers import get_use_plc
+from config import Theme, LogLevel
 ```
 
 ### 7. ロギング
