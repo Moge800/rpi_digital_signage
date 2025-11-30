@@ -1,7 +1,35 @@
 import os
+from enum import Enum
 from pydantic import IPvAnyAddress, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Literal
+
+
+class Theme(str, Enum):
+    """UIテーマ
+
+    Attributes:
+        DARK: ダークモード (黒背景)
+        LIGHT: ライトモード (白背景)
+    """
+
+    DARK = "dark"
+    LIGHT = "light"
+
+
+class LogLevel(str, Enum):
+    """ログレベル
+
+    Attributes:
+        DEBUG: デバッグ情報
+        INFO: 通常情報
+        WARNING: 警告
+        ERROR: エラー
+    """
+
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
 
 
 class Settings(BaseSettings):
@@ -19,8 +47,8 @@ class Settings(BaseSettings):
         USE_PLC: PLC使用フラグ (Falseの場合はダミーデータ)
         LINE_NAME: ライン名 (機種マスタJSONファイル名と対応)
         REFRESH_INTERVAL: フロントエンド自動更新間隔(秒)
-        LOG_LEVEL: ログレベル (DEBUG/INFO/WARNING/ERROR)
-        THEME: UIテーマ (dark: ダークモード, light: ライトモード)
+        LOG_LEVEL: ログレベル (LogLevel Enum)
+        THEME: UIテーマ (Theme Enum: DARK/LIGHT)
         KIOSK_MODE: Kioskモード (True: フルスクリーン自動起動, False: 通常モード)
     """
 
@@ -33,8 +61,8 @@ class Settings(BaseSettings):
     USE_PLC: bool = True
     LINE_NAME: str = "NONAME"
     REFRESH_INTERVAL: float = 10.0
-    LOG_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
-    THEME: Literal["dark", "light"] = "dark"
+    LOG_LEVEL: LogLevel = LogLevel.INFO
+    THEME: Theme = Theme.DARK
     KIOSK_MODE: bool = False
 
     model_config = SettingsConfigDict(
