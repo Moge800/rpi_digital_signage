@@ -11,6 +11,10 @@ from typing import ClassVar
 import json
 import os
 from schemas.production_type import ProductionTypeConfig
+from dotenv import load_dotenv
+
+# .envファイルから環境変数をロード
+load_dotenv()  # TODO:ここでロードしないと環境が読めなかったので要修正
 
 
 class ProductionConfigManager:
