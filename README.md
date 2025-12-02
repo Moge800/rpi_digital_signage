@@ -17,15 +17,15 @@
 
 ### オフライン環境 (Raspberry Pi)
 
-オフライン環境でPython 3.13をインストールする場合:
+オフライン環境でPythonをインストールする場合:
 
 📖 **[オフラインインストールガイド](docs/OFFLINE_PYTHON_INSTALL.md)** を参照
 
 ### オンライン環境
 
-1. Python 3.13のインストール
+1. Python 3.11以上のインストール
    ```bash
-   python3.13 --version  # バージョン確認
+   python3 --version  # バージョン確認 (3.11以上)
    ```
 
 2. `.env.example` を `.env` にコピー
@@ -42,8 +42,8 @@
 
 4. 依存関係インストール
    ```bash
-   python3.13 -m venv .venv
-   source .venv/bin/activate
+   python3 -m venv .venv
+   source .venv/bin/activate  # Windows: .venv\Scripts\activate
    pip install uv
    uv sync
    ```

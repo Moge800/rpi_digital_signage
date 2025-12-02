@@ -3,7 +3,7 @@ name = "rpi-digital-signage"
 version = "0.1.0"
 description = "Raspberry Pi向けデジタルサイネージ - PLC生産データ表示システム"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 authors = [
     {name = "Moge800", email = "your.email@example.com"}
 ]
@@ -12,6 +12,8 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Manufacturing",
     "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
