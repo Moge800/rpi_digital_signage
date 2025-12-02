@@ -11,18 +11,25 @@ def setup_logger(
     console: bool = True,
     file_encoding: str = "utf-8",
 ) -> logging.Logger:
-    """
-    ロガーをセットアップする
+    """ロガーをセットアップする
+
+    コンソール出力とファイル出力の両方に対応したロガーを構築。
+    既存のハンドラは自動的にクリアされ、重複を防ぐ。
 
     Args:
-        name: ロガー名（通常は __name__ を渡す）
-        log_file: ログファイルのパス（Noneの場合はファイル出力なし）
-        level: ログレベル
+        name: ロガー名 (通常は __name__ を渡す)
+        log_file: ログファイルのパス (Noneの場合はファイル出力なし)
+        level: ログレベル (logging.DEBUG, INFO, WARNING, ERROR)
         console: コンソール出力するかどうか
-        file_encoding: ログファイルのエンコーディング
+        file_encoding: ログファイルのエンコーディング (デフォルト: utf-8)
 
     Returns:
-        設定済みのロガーインスタンス
+        logging.Logger: 設定済みのロガーインスタンス
+
+    Examples:
+        >>> from backend.logging import setup_logger
+        >>> logger = setup_logger(__name__, log_file="app.log", level=logging.INFO)
+        >>> logger.info("Application started")
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -61,12 +68,24 @@ def setup_logger(
 
 
 def setup_root_logger(log_file: str = "app.log", level: int = logging.INFO) -> None:
-    """
-    ルートロガーを設定する（アプリケーション全体で使う場合）
+    """ルートロガーを設定する (アプリケーション全体で使う場合)
+
+    logging.basicConfig()を使用して、全モジュール共通のロガーを設定。
+    コンソールとファイルの両方に出力する。
 
     Args:
-        log_file: ログファイルのパス
-        level: ログレベル
+        log_file: ログファイルのパス (デフォルト: "app.log")
+        level: ログレベル (logging.INFO, WARNING, ERROR等)
+
+    Note:
+        setup_logger()の方が柔軟性が高いため、
+        複数モジュールで個別設定が必要な場合はそちらを推奨。
+
+    Examples:
+        >>> from backend.logging import setup_root_logger
+        >>> setup_root_logger(log_file="main.log", level=logging.DEBUG)
+        >>> import logging
+        >>> logging.info("Root logger initialized")
     """
     logging.basicConfig(
         level=level,

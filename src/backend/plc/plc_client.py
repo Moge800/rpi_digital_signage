@@ -173,6 +173,18 @@ class PLCClient(BasePLCClient):
             self.connected = False
 
     def reconnect(self) -> bool:
+        """PLC接続を再確立する
+
+        設定されたRECONNECT_RETRY回数分、再接続を試みる。
+        各試行の間にはRECONNECT_DELAY秒の遅延を挟む。
+
+        Returns:
+            bool: 再接続成功時True、全試行失敗時False
+
+        Note:
+            AUTO_RECONNECT=trueの場合、read_words/read_bits実行時に
+            自動的にこのメソッドが呼び出される。
+        """
         for i in range(self.settings.RECONNECT_RETRY):
             try:
                 logger.info(
@@ -194,6 +206,22 @@ class PLCClient(BasePLCClient):
 
     @auto_reconnect
     def read_words(self, device_name: str, size: int = 1) -> list[int]:
+        """PLCからワードデバイスを読み取る
+
+        Args:
+            device_name: デバイス名 (例: "D100", "SD210")
+            size: 読み取るワード数 (デフォルト: 1)
+
+        Returns:
+            list[int]: 読み取ったワードデータのリスト (length=size)
+
+        Raises:
+            ConnectionError: PLC未接続または通信エラー時
+
+        Note:
+            @auto_reconnectデコレータにより、通信エラー時は
+            自動的に再接続を試みる (AUTO_RECONNECT=true時)。
+        """
         if not self.connected:
             raise ConnectionError("Not connected to PLC.")
         data = self.plc.batchread_wordunits(device_name, size)
@@ -202,6 +230,22 @@ class PLCClient(BasePLCClient):
 
     @auto_reconnect
     def read_bits(self, device_name: str, size: int = 1) -> list[int]:
+        """PLCからビットデバイスを読み取る
+
+        Args:
+            device_name: デバイス名 (例: "M100", "X10")
+            size: 読み取るビット数 (デフォルト: 1)
+
+        Returns:
+            list[int]: 読み取ったビットデータのリスト (0 or 1, length=size)
+
+        Raises:
+            ConnectionError: PLC未接続または通信エラー時
+
+        Note:
+            @auto_reconnectデコレータにより、通信エラー時は
+            自動的に再接続を試みる (AUTO_RECONNECT=true時)。
+        """
         if not self.connected:
             raise ConnectionError("Not connected to PLC.")
         data = self.plc.batchread_bitunits(device_name, size)
@@ -210,5 +254,13 @@ class PLCClient(BasePLCClient):
 
 
 def get_plc_client() -> PLCClient:
-    """PLCクライアントのシングルトンインスタンスを取得"""
+    """PLCクライアントのシングルトンインスタンスを取得
+
+    Returns:
+        PLCClient: シングルトンインスタンス (既に接続済み)
+
+    Note:
+        初回呼び出し時に.envファイルからSettings()を読み込み、
+        PLC接続を確立する。2回目以降は既存インスタンスを返す。
+    """
     return PLCClient.get_instance()

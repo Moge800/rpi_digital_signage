@@ -102,9 +102,19 @@ def get_production_data() -> ProductionData:
 
     USE_PLC=true時はPLCから実データを取得。
     USE_PLC=false時はダミーデータを生成。
+    PLC通信エラー時は自動的にダミーデータにフォールバック。
 
     Returns:
-        ProductionData: 生産データ
+        ProductionData: 生産データ (計画/実績/アラーム等)
+
+    Note:
+        この関数はStreamlitの自動リフレッシュサイクルごとに
+        呼び出される (REFRESH_INTERVAL秒ごと)。
+
+    Examples:
+        >>> data = get_production_data()
+        >>> print(data.plan)  # 45000
+        >>> print(data.actual)  # 30000
     """
     if USE_PLC:
         # PLC実データ取得
@@ -123,8 +133,19 @@ def get_production_data() -> ProductionData:
 def _get_dummy_data() -> ProductionData:
     """ダミーデータを生成する (内部使用)
 
+    PLC未接続時やUSE_PLC=false時にランダムな生産データを生成。
+    アラームも確率的に発生させ、実運用に近い動作を再現。
+
     Returns:
         ProductionData: ランダムなダミーデータ
+            - plan: 固定値45000
+            - actual: 0-45000のランダム値
+            - production_type: 0-MAX_PRODUCTION_TYPEのランダム機種
+            - alarm: 実績>8000かつ50%の確率で発生
+
+    Note:
+        開発環境・デモ環境でのテスト用。
+        本番環境ではUSE_PLC=trueにすること。
     """
     from backend.calculators import calculate_remain_pallet
     from backend.config_helpers import get_config_data

@@ -63,14 +63,28 @@ def get_kiosk_mode() -> bool:
 def get_config_data(production_type: int) -> ProductionTypeConfig:
     """指定された機種番号に対応する機種設定を取得する
 
-    Note:
-        モジュールレベルでキャッシュされたProductionConfigManagerを使用。
-        パフォーマンス最適化のため、繰り返し呼び出しても初期化は1回のみ。
+    モジュールレベルでキャッシュされたProductionConfigManagerを使用。
+    config/production_types/{LINE_NAME}.jsonから読み込まれた設定を返す。
 
     Args:
         production_type: 機種番号 (0-15)
 
     Returns:
         ProductionTypeConfig: 機種設定オブジェクト
+            - production_type: 機種番号
+            - name: 機種名
+            - fully: 1パレットあたりの積載数
+            - seconds_per_product: 1個あたりの生産時間(秒)
+
+    Raises:
+        ValueError: 機種番号が範囲外または未定義の場合
+
+    Note:
+        パフォーマンス最適化のため、繰り返し呼び出しても初期化は1回のみ。
+
+    Examples:
+        >>> config = get_config_data(1)
+        >>> print(config.name)  # "機種A"
+        >>> print(config.fully)  # 2800
     """
     return _config_manager.get_config(production_type)

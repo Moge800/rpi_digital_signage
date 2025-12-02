@@ -90,10 +90,15 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
 def render_header(data: ProductionData) -> None:
     """ヘッダー部分をレンダリング
 
-    ライン名、機種名、タイムスタンプを表示する。
+    ライン名・機種名・現在時刻を大きく表示する。
+    デジタルサイネージの最上部に配置されるセクション。
 
     Args:
-        data: 生産データ
+        data: 生産データ (line_name, production_name, timestampを使用)
+
+    Note:
+        Streamlitのst.markdown()でHTMLを直接レンダリング。
+        CSSはget_page_styles()で定義されたスタイルを参照。
     """
     col_head_l, col_head_r = st.columns([3, 1])
     with col_head_l:
@@ -111,11 +116,16 @@ def render_header(data: ProductionData) -> None:
 def render_production_metrics(data: ProductionData, progress: float) -> None:
     """生産数量メトリクスをレンダリング
 
-    計画数、実績数、進捗率、パレット情報を表示する。
+    計画数・実績数・進捗バー・残りパレット数を表示する。
+    各KPIは大きな数値とラベルで視認性を高める。
 
     Args:
-        data: 生産データ
+        data: 生産データ (plan, actual, remain_pallet, fullyを使用)
         progress: 進捗率 (0.0-1.0)
+
+    Note:
+        パレット情報 = 残りパレット数 / 必要総パレット数
+        必要総パレット数 = plan / fully (1パレットあたりの積載数)
     """
     st.markdown(
         f"<div class='kpi-value-big' style='text-align: center;'>{data.actual:,d} <span style='font-size: 0.6em; color: #888;'>/ {data.plan:,d}</span></div>",
@@ -142,11 +152,19 @@ def render_production_metrics(data: ProductionData, progress: float) -> None:
 def render_time_and_status(data: ProductionData, progress: float) -> None:
     """残り時間とステータスをレンダリング
 
-    残り生産時間と装置ステータスを表示する。
+    残り生産時間(HH時間MM分形式)と稼働ステータス(稼働中/要注意/異常)を表示。
+    ステータス色はget_status_info()で判定され、CSS classで制御。
 
     Args:
-        data: 生産データ
-        progress: 進捗率 (0.0-1.0)
+        data: 生産データ (remain_min, in_operating, alarmを使用)
+        progress: 進捗率 (0.0-1.0, ステータス判定に使用)
+
+    Note:
+        ステータス判定:
+        - alarm=True → 異常 (赤)
+        - progress>=1.0 → 目標進捗 (緑)
+        - progress>=0.8 → 要注意 (黄)
+        - progress<0.8 → 稼働中 (緑)
     """
     hours = data.remain_min // 60
     mins = data.remain_min % 60
@@ -169,10 +187,16 @@ def render_time_and_status(data: ProductionData, progress: float) -> None:
 def render_alarm_bar(data: ProductionData) -> None:
     """アラームバーをレンダリング
 
-    異常発生時は赤色バー、正常時は緑色バーを表示する。
+    画面最下部に配置される全幅のステータスバー。
+    アラーム発生時は赤色グラデーション+メッセージ表示、
+    正常時は緑色で「正常」表示。
 
     Args:
-        data: 生産データ
+        data: 生産データ (alarm, alarm_msgを使用)
+
+    Note:
+        アラーム時はアニメーション効果付きで視認性を高める。
+        CSSはget_page_styles()で定義されたalarm-barクラスを使用。
     """
     if data.alarm:
         st.markdown(

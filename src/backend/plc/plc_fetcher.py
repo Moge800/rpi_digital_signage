@@ -121,10 +121,15 @@ def fetch_production_type(client: PLCClient, device_address: str) -> int:
 
     Args:
         client: PLCクライアント
-        device_address: 機種番号格納デバイスアドレス
+        device_address: 機種番号格納デバイスアドレス (例: "D200")
 
     Returns:
-        int: 生産機種番号（エラー時は0）
+        int: 生産機種番号 (0-15, エラー時は0)
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> prod_type = fetch_production_type(client, "D200")
+        >>> print(prod_type)  # 1
     """
     return _fetch_word(client, device_address, "production type", default=0)
 
@@ -134,10 +139,15 @@ def fetch_plan(client: PLCClient, device_address: str) -> int:
 
     Args:
         client: PLCクライアント
-        device_address: 計画数格納デバイスアドレス
+        device_address: 計画数格納デバイスアドレス (例: "D300")
 
     Returns:
-        int: 生産計画数（エラー時は0）
+        int: 生産計画数 (0以上、エラー時は0)
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> plan = fetch_plan(client, "D300")
+        >>> print(plan)  # 45000
     """
     return _fetch_word(client, device_address, "production plan", default=0)
 
@@ -147,10 +157,15 @@ def fetch_actual(client: PLCClient, device_address: str) -> int:
 
     Args:
         client: PLCクライアント
-        device_address: 実績数格納デバイスアドレス
+        device_address: 実績数格納デバイスアドレス (例: "D400")
 
     Returns:
-        int: 生産実績数（エラー時は0）
+        int: 生産実績数 (0以上、エラー時は0)
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> actual = fetch_actual(client, "D400")
+        >>> print(actual)  # 30000
     """
     return _fetch_word(client, device_address, "production actual", default=0)
 
@@ -160,10 +175,15 @@ def fetch_in_operating(client: PLCClient, device_address: str) -> bool:
 
     Args:
         client: PLCクライアント
-        device_address: 稼働中フラグ格納デバイスアドレス
+        device_address: 稼働中フラグ格納デバイスアドレス (例: "M100")
 
     Returns:
-        bool: 稼働中フラグ（エラー時はFalse）
+        bool: 稼働中ならTrue、停止中ならFalse (エラー時はFalse)
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> is_running = fetch_in_operating(client, "M100")
+        >>> print(is_running)  # True
     """
     return _fetch_bit(client, device_address, "in_operating flag", default=False)
 
@@ -173,10 +193,15 @@ def fetch_alarm_flag(client: PLCClient, device_address: str) -> bool:
 
     Args:
         client: PLCクライアント
-        device_address: アラームフラグ格納デバイスアドレス
+        device_address: アラームフラグ格納デバイスアドレス (例: "M600")
 
     Returns:
-        bool: アラームフラグ（エラー時はFalse）
+        bool: アラーム発生中ならTrue、正常ならFalse (エラー時はFalse)
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> has_alarm = fetch_alarm_flag(client, "M600")
+        >>> print(has_alarm)  # False
     """
     return _fetch_bit(client, device_address, "alarm flag", default=False)
 
@@ -184,12 +209,20 @@ def fetch_alarm_flag(client: PLCClient, device_address: str) -> bool:
 def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
     """PLCからアラームメッセージを取得
 
+    32文字のASCII文字列を16ワード(各ワードに2バイト)から取得し、
+    Shift_JISでデコードする。
+
     Args:
         client: PLCクライアント
-        device_address: アラームメッセージ格納デバイスアドレス
+        device_address: デバイスアドレス (例: "D700")
 
     Returns:
-        str: アラームメッセージ
+        str: アラームメッセージ (最大32文字、エラー時は空文字)
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> msg = fetch_alarm_msg(client, "D700")
+        >>> print(msg)  # "装置異常発生中"
     """
     try:
         data = client.read_words(device_address, size=10)  # 10ワード分読み取り
@@ -207,12 +240,27 @@ def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
 def get_plc_device_dict() -> dict[str, str]:
     """PLCデバイスリスト設定を取得
 
+    .envファイルから各データ項目のPLCデバイスアドレスを読み込み、
+    辞書形式で返す。モジュールレベルでキャッシュされる。
+
+    Returns:
+        dict[str, str]: PLCデバイスアドレスの辞書
+            - TIME_DEVICE: タイムスタンプ格納デバイス
+            - PRODUCTION_TYPE_DEVICE: 機種番号格納デバイス
+            - PLAN_DEVICE: 計画数格納デバイス
+            - ACTUAL_DEVICE: 実績数格納デバイス
+            - ALARM_FLAG_DEVICE: アラームフラグ格納デバイス
+            - ALARM_MSG_DEVICE: アラームメッセージ格納デバイス
+            - IN_OPERATING_DEVICE: 稼働中フラグ格納デバイス
+
     Note:
         モジュールレベルでキャッシュされたPLCDeviceListを使用。
         パフォーマンス最適化のため、繰り返し呼び出しても初期化は1回のみ。
 
-    Returns:
-        dict[str, str]: PLCデバイスアドレスの辞書
+    Examples:
+        >>> devices = get_plc_device_dict()
+        >>> print(devices["TIME_DEVICE"])  # "D210"
+        >>> print(devices["PLAN_DEVICE"])  # "D300"
     """
     return {
         "TIME_DEVICE": _plc_device_list.TIME_DEVICE,
@@ -228,14 +276,34 @@ def get_plc_device_dict() -> dict[str, str]:
 def fetch_production_data(client: PLCClient) -> ProductionData:
     """PLCから生産データを一括取得
 
-    各種デバイスから生産情報を取得し、ProductionDataに統合して返す。
-    計算ロジックはcalculators.pyに依存。
+    各種デバイスアドレスから生産情報を取得し、
+    計算ロジック(残りパレット数・残り時間)を適用して
+    ProductionDataオブジェクトを構築する。
 
     Args:
-        client: PLCクライアント
+        client: PLCクライアント (接続済み)
 
     Returns:
         ProductionData: 統合された生産データ
+            - line_name: ライン名
+            - production_type: 機種番号
+            - production_name: 機種名
+            - plan: 計画数
+            - actual: 実績数
+            - remain_min: 残り時間(分)
+            - remain_pallet: 残りパレット数
+            - alarm: アラームフラグ
+            - alarm_msg: アラームメッセージ
+            - timestamp: データ取得時刻
+
+    Raises:
+        ConnectionError: PLC通信エラー時
+
+    Examples:
+        >>> client = get_plc_client()
+        >>> data = fetch_production_data(client)
+        >>> print(data.line_name)  # "LINE_1"
+        >>> print(data.actual)     # 30000
     """
     from backend.calculators import calculate_remain_minutes, calculate_remain_pallet
     from backend.config_helpers import get_config_data, get_line_name
