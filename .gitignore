@@ -17,6 +17,7 @@ htmlcov/
 # IDE files
 .vscode/
 .idea/
+.vs/
 
 # Virtual environments
 .venv
