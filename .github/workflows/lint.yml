@@ -33,3 +33,7 @@ jobs:
     - name: Run Black (check only)
       run: |
         uv run black --check src/ tests/
+        
+    - name: Run mypy
+      run: |
+        uv run python -m mypy src/ --show-error-codes --pretty
