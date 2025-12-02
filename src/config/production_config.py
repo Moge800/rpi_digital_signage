@@ -9,12 +9,7 @@
 from pathlib import Path
 from typing import ClassVar
 import json
-import os
 from schemas.production_type import ProductionTypeConfig
-from dotenv import load_dotenv
-
-# .envファイルから環境変数をロード
-load_dotenv()  # TODO:ここでロードしないと環境が読めなかったので要修正
 
 
 class ProductionConfigManager:
@@ -46,7 +41,10 @@ class ProductionConfigManager:
             instance = super().__new__(cls)
             # 属性を初期化してからインスタンスに代入
             if line_name is None:
-                line_name = os.getenv("LINE_NAME", "LINE_1")
+                # Settings経由で環境変数を取得 (Pydantic Settingsが.envを自動ロード)
+                from config.settings import Settings
+
+                line_name = Settings().LINE_NAME
             instance._line_name = line_name
             instance._configs = instance._load_configs()
             cls._instance = instance
