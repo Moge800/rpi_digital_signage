@@ -24,18 +24,22 @@ cd "$SCRIPT_DIR"
 
 echo -e "${YELLOW}[1/3] 環境確認${NC}"
 
-# Python 3.13確認
-if ! command -v python3.13 &> /dev/null; then
-    echo -e "${RED}エラー: python3.13が見つかりません${NC}"
+# Python 3.11確認 (またはpython3)
+if command -v python3.11 &> /dev/null; then
+    PYTHON_CMD="python3.11"
+elif command -v python3 &> /dev/null; then
+    PYTHON_CMD="python3"
+else
+    echo -e "${RED}エラー: python3コマンドが見つかりません${NC}"
     echo -e "${YELLOW}オフラインインストール手順:${NC}"
-    echo "  1. scripts/download_python313_packages_windows.ps1 を実行 (Windows/WSL環境)"
-    echo "  2. python313_packages.tar.gz をUSBメモリで転送"
-    echo "  3. tar -xzf python313_packages.tar.gz"
-    echo "  4. cd python313_packages && sudo ./install_python313.sh"
+    echo "  1. scripts/download_python_packages_windows.ps1 を実行 (Windows/WSL環境)"
+    echo "  2. python_packages.tar.gz をUSBメモリで転送"
+    echo "  3. tar -xzf python_packages.tar.gz"
+    echo "  4. cd python_packages && sudo ./install_python.sh"
     exit 1
 fi
 
-PYTHON_VERSION=$(python3.13 --version)
+PYTHON_VERSION=$($PYTHON_CMD --version)
 echo -e "${GREEN}✓ ${PYTHON_VERSION}${NC}"
 
 # .envファイル確認
@@ -55,7 +59,7 @@ echo -e "${YELLOW}[2/3] 仮想環境確認${NC}"
 # 仮想環境作成・アクティベート
 if [ ! -d ".venv" ]; then
     echo -e "${YELLOW}仮想環境を作成します...${NC}"
-    python3.13 -m venv .venv
+    $PYTHON_CMD -m venv .venv
 fi
 
 source .venv/bin/activate

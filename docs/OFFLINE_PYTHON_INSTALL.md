@@ -1,8 +1,11 @@
-# Python 3.13 オフラインインストールガイド
+# Python 3.11 オフラインインストールガイド
 
 ## 概要
 
-オフライン環境のRaspberry Pi 5にPython 3.13をインストールするための手順書です。
+オフライン環境のRaspberry Pi 5にPython 3.11をインストールするための手順書です。
+
+> **Note**: Raspberry Pi OS Bookwormには標準でPython 3.11が含まれています。
+> オフライン環境でのパッケージ準備が主な目的です。
 
 ## 前提条件
 
@@ -32,21 +35,21 @@ wsl --install
 cd C:\Users\<username>\Develop\rpi_digital_signage\scripts
 
 # PowerShellスクリプト実行
-.\download_python313_packages_windows.ps1
+.\download_python_packages_windows.ps1
 ```
 
 **実行内容**:
 - WSL (Ubuntu) 経由でDebian/Ubuntuリポジトリから以下をダウンロード:
-  - `python3.13` 本体
-  - `python3.13-venv` (仮想環境)
-  - `python3.13-dev` (開発ヘッダー)
+  - `python3.11` 本体 (または最新の3.x)
+  - `python3.11-venv` (仮想環境)
+  - `python3.11-dev` (開発ヘッダー)
   - `build-essential` (gcc, g++, makeなど)
   - 依存ライブラリ (libffi, libssl, zlib等)
   - すべての依存パッケージ (.deb)
 
 **生成ファイル**:
-- `python313_packages/` - パッケージディレクトリ
-- `python313_packages.tar.gz` - 圧縮アーカイブ (約100-300MB)
+- `python_packages/` - パッケージディレクトリ
+- `python_packages.tar.gz` - 圧縮アーカイブ (約100-300MB)
 
 ---
 
@@ -59,10 +62,10 @@ Windowsを使わずWSL/Linux環境で直接実行する場合:
 cd /path/to/rpi_digital_signage/scripts
 
 # 実行権限付与
-chmod +x download_python313_packages.sh
+chmod +x download_python_packages.sh
 
 # スクリプト実行
-./download_python313_packages.sh
+./download_python_packages.sh
 ```
 
 ---
@@ -73,7 +76,7 @@ chmod +x download_python313_packages.sh
 
 ```powershell
 # Windows環境
-Copy-Item python313_packages.tar.gz E:\
+Copy-Item python_packages.tar.gz E:\
 # (E:\ はUSBメモリのドライブレター)
 ```
 
@@ -85,7 +88,7 @@ Copy-Item python313_packages.tar.gz E:\
 ls /media/pi/
 
 # ホームディレクトリにコピー
-cp /media/pi/*/python313_packages.tar.gz ~/
+cp /media/pi/*/python_packages.tar.gz ~/
 cd ~
 ```
 
@@ -96,21 +99,21 @@ cd ~
 ### 4-1. アーカイブ展開
 
 ```bash
-tar -xzf python313_packages.tar.gz
-cd python313_packages
+tar -xzf python_packages.tar.gz
+cd python_packages
 ```
 
 ### 4-2. インストールスクリプト実行
 
 ```bash
 # root権限で実行 (パスワード入力が必要)
-sudo ./install_python313.sh
+sudo ./install_python.sh
 ```
 
 **実行内容**:
 1. すべての.debパッケージをdpkgでインストール
 2. 依存関係エラーがあれば自動修復試行
-3. Python 3.13インストール確認
+3. Python 3.11インストール確認
 4. テスト用仮想環境作成・動作確認
 
 **インストールログ**: `install.log` に保存されます
@@ -118,12 +121,15 @@ sudo ./install_python313.sh
 ### 4-3. インストール確認
 
 ```bash
-# Python 3.13バージョン確認
-python3.13 --version
-# 出力例: Python 3.13.x
+# Python 3.11バージョン確認
+python3.11 --version
+# 出力例: Python 3.11.x
+
+# または標準pythonコマンド
+python3 --version
 
 # venvモジュール確認
-python3.13 -m venv --help
+python3.11 -m venv --help
 ```
 
 ---
@@ -139,7 +145,11 @@ cd ~/rpi_digital_signage
 ### 5-2. 仮想環境作成 (Python 3.13使用)
 
 ```bash
-python3.13 -m venv .venv
+# Python 3.11で仮想環境作成
+python3.11 -m venv .venv
+# または標準pythonコマンド
+python3 -m venv .venv
+
 source .venv/bin/activate
 ```
 

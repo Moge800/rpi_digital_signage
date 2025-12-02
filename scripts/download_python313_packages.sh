@@ -1,11 +1,11 @@
 #!/bin/bash
-# Raspberry Pi用Python 3.13パッケージダウンロードスクリプト
+# Raspberry Pi用Pythonパッケージダウンロードスクリプト
 # Ubuntu/Debian/WSL環境で実行してください
 #
 # 使い方:
 #   1. WSLまたはLinux環境でこのスクリプトを実行
-#   2. ./download_python313_packages.sh
-#   3. 生成されたpython313_packages/フォルダをUSBメモリ等でラズパイに転送
+#   2. ./download_python_packages.sh
+#   3. 生成されたpython_packages/フォルダをUSBメモリ等でラズパイに転送
 
 set -e  # エラーで即座に終了
 
@@ -16,15 +16,15 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Python 3.13パッケージダウンローダー${NC}"
+echo -e "${GREEN}Pythonパッケージダウンローダー${NC}"
 echo -e "${GREEN}Raspberry Pi OS (Debian 12 Bookworm)用${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
 
 # 出力ディレクトリ
-OUTPUT_DIR="python313_packages"
+OUTPUT_DIR="python_packages"
 DEB_DIR="${OUTPUT_DIR}/debs"
-ARCHIVE_NAME="python313_packages.tar.gz"
+ARCHIVE_NAME="python_packages.tar.gz"
 
 # ディレクトリ初期化
 if [ -d "$OUTPUT_DIR" ]; then
@@ -38,11 +38,11 @@ echo -e "${GREEN}[1/4] パッケージリスト更新${NC}"
 sudo apt-get update
 
 echo ""
-echo -e "${GREEN}[2/4] Python 3.13関連パッケージをダウンロード${NC}"
+echo -e "${GREEN}[2/4] Python関連パッケージをダウンロード${NC}"
 echo "以下のパッケージをダウンロードします:"
-echo "  - python3.13"
-echo "  - python3.13-venv"
-echo "  - python3.13-dev"
+echo "  - python3 (標準パッケージ, 3.11+)"
+echo "  - python3-venv"
+echo "  - python3-dev"
 echo "  - python3-pip (システムpip、念のため)"
 echo "  - build-essential (コンパイル環境)"
 echo "  - libffi-dev, libssl-dev (依存ライブラリ)"
@@ -51,23 +51,12 @@ echo ""
 # 依存関係も含めてダウンロード
 cd "$DEB_DIR"
 
-# Python 3.13本体 + venv + dev
-echo -e "${YELLOW}Downloading python3.13...${NC}"
-apt-get download python3.13 python3.13-venv python3.13-dev 2>/dev/null || {
-    echo -e "${RED}⚠ python3.13がリポジトリに見つかりません${NC}"
-    echo -e "${YELLOW}Raspberry Pi OS Bookwormでは標準リポジトリにPython 3.13がない可能性があります${NC}"
-    echo -e "${YELLOW}以下の対処法を推奨します:${NC}"
-    echo "  1. deadsnakes PPAを使用 (Ubuntu/WSLの場合)"
-    echo "  2. ソースからビルド (Raspberry Pi上で)"
-    echo ""
-    echo -e "${YELLOW}代替案: Python 3.11パッケージをダウンロード${NC}"
-    read -p "Python 3.11でダウンロードしますか? (y/N): " response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        apt-get download python3.11 python3.11-venv python3.11-dev
-    else
-        echo -e "${RED}ダウンロード中止${NC}"
-        exit 1
-    fi
+# Python 3.11本体 + venv + dev (Bookworm標準)
+echo -e "${YELLOW}Downloading python3 (3.11+)...${NC}"
+apt-get download python3 python3-venv python3-dev 2>/dev/null || {
+    echo -e "${RED}⚠ python3パッケージがリポジトリに見つかりません${NC}"
+    echo -e "${YELLOW}apt-get update を先に実行してください${NC}"
+    exit 1
 }
 
 # システムpip (念のため)

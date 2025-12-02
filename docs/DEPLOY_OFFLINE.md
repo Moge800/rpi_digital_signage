@@ -23,7 +23,7 @@
 cd C:\Users\benom\Develop\rpi_digital_signage
 
 # 依存パッケージをダウンロード (Linux ARM64用)
-uv pip download -r pyproject.toml --platform linux --python-version 3.13 --dest packages/
+uv pip download -r pyproject.toml --platform linux --python-version 3.11 --dest packages/
 ```
 
 または、手動で全パッケージをダウンロード:
@@ -33,7 +33,7 @@ uv pip download -r pyproject.toml --platform linux --python-version 3.13 --dest 
 mkdir packages
 
 # 各パッケージをダウンロード
-uv pip download plotly pydantic-settings pymcprotocol python-dotenv streamlit streamlit-autorefresh --platform linux --python-version 3.13 --dest packages/
+uv pip download plotly pydantic-settings pymcprotocol python-dotenv streamlit streamlit-autorefresh --platform linux --python-version 3.11 --dest packages/
 ```
 
 ### 1.2 uvインストーラーのダウンロード

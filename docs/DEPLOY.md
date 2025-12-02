@@ -3,7 +3,7 @@
 ## 前提条件
 
 - Raspberry Pi OS (64-bit) Bookworm以降
-- Python 3.13+
+- Python 3.11+ (Bookwormには標準で含まれています)
 - ネットワーク接続 (初回セットアップ時)
 - PLC(MELSEC)との通信可能なネットワーク環境
 
@@ -17,8 +17,10 @@
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y python3.13 python3.13-venv python3-pip git
+sudo apt install -y python3 python3-venv python3-pip git
 ```
+
+> **Note**: Raspberry Pi OS BookwormにはPython 3.11が標準で含まれています。
 
 #### 2. uvのインストール
 
@@ -38,7 +40,7 @@ cd rpi_digital_signage
 #### 4. 仮想環境のセットアップ
 
 ```bash
-python3.13 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install uv
 uv sync
@@ -49,18 +51,18 @@ uv sync
 **詳細手順**: [docs/OFFLINE_PYTHON_INSTALL.md](OFFLINE_PYTHON_INSTALL.md)
 
 **要約**:
-1. Windows/WSL環境で `scripts/download_python313_packages_windows.ps1` を実行
-2. 生成された `python313_packages.tar.gz` をUSBメモリでRaspberry Piに転送
+1. Windows/WSL環境で `scripts/download_python_packages_windows.ps1` を実行
+2. 生成された `python_packages.tar.gz` をUSBメモリでRaspberry Piに転送
 3. Raspberry Pi上で展開・インストール:
    ```bash
-   tar -xzf python313_packages.tar.gz
-   cd python313_packages
-   sudo ./install_python313.sh
+   tar -xzf python_packages.tar.gz
+   cd python_packages
+   sudo ./install_python.sh
    ```
 4. プロジェクトディレクトリで依存関係インストール:
    ```bash
    cd ~/rpi_digital_signage
-   python3.13 -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate
    pip install uv
    uv sync
