@@ -21,13 +21,15 @@
 .\download_python313_packages_windows.ps1
 ```
 
+> **Note**: このスクリプトは内部で `download_python_packages.sh` を呼び出します。
+
 **生成物**:
-- `python313_packages/` - パッケージディレクトリ
-- `python313_packages.tar.gz` - 圧縮アーカイブ (Raspberry Piに転送)
+- `python_packages/` - パッケージディレクトリ
+- `python_packages.tar.gz` - 圧縮アーカイブ (Raspberry Piに転送)
 
 ---
 
-### 2. `download_python313_packages.sh` (Linux/WSL Bash)
+### 2. `download_python_packages.sh` (Linux/WSL Bash)
 
 **用途**: Linux/WSL環境で直接パッケージをダウンロード
 
@@ -37,30 +39,30 @@
 
 **実行方法**:
 ```bash
-chmod +x download_python313_packages.sh
-./download_python313_packages.sh
+chmod +x download_python_packages.sh
+./download_python_packages.sh
 ```
 
 **処理フロー**:
 1. apt-get update でリポジトリ更新
-2. Python 3.13関連パッケージをダウンロード:
-   - python3.13
-   - python3.13-venv
-   - python3.13-dev
+2. Python関連パッケージをダウンロード:
+   - python3 (Bookworm標準: 3.11)
+   - python3-venv
+   - python3-dev
    - build-essential (gcc, g++, make)
    - 開発ライブラリ (libffi, libssl, zlib等)
 3. すべての依存パッケージも再帰的にダウンロード
-4. インストールスクリプト (`install_python313.sh`) 生成
+4. インストールスクリプト (`install_python.sh`) 生成
 5. tar.gz形式で圧縮
 
 **生成物**:
-- `python313_packages/debs/` - .debファイル群
-- `python313_packages/install_python313.sh` - Raspberry Pi用インストーラー
-- `python313_packages.tar.gz` - 圧縮アーカイブ
+- `python_packages/debs/` - .debファイル群
+- `python_packages/install_python.sh` - Raspberry Pi用インストーラー
+- `python_packages.tar.gz` - 圧縮アーカイブ
 
 ---
 
-### 3. `install_python313.sh` (自動生成)
+### 3. `install_python.sh` (自動生成)
 
 **用途**: Raspberry Pi上でパッケージをインストール
 
@@ -69,15 +71,15 @@ chmod +x download_python313_packages.sh
 **実行方法**:
 ```bash
 # アーカイブ展開後
-cd python313_packages
-sudo ./install_python313.sh
+cd python_packages
+sudo ./install_python.sh
 ```
 
 **処理フロー**:
 1. root権限チェック
 2. すべての.debパッケージをdpkgでインストール
 3. 依存関係エラーがあれば `apt-get install -f` で自動修復
-4. Python 3.13インストール確認
+4. Python 3.11+インストール確認
 5. テスト用仮想環境作成・動作検証
 
 **ログ出力**: `install.log` にインストール詳細を記録
@@ -91,20 +93,20 @@ sudo ./install_python313.sh
     ↓
 (1) download_python313_packages_windows.ps1 実行
     ↓
-  python313_packages.tar.gz 生成
+  python_packages.tar.gz 生成
     ↓
   USBメモリにコピー
     ↓
 [Raspberry Pi]
     ↓
-(2) tar -xzf python313_packages.tar.gz
+(2) tar -xzf python_packages.tar.gz
     ↓
-(3) sudo ./install_python313.sh
+(3) sudo ./install_python.sh
     ↓
-  Python 3.13インストール完了
+  Python 3.11インストール完了
     ↓
 (4) プロジェクトセットアップ
-    python3.13 -m venv .venv
+    python3 -m venv .venv
     source .venv/bin/activate
     pip install uv
     uv sync
@@ -114,18 +116,20 @@ sudo ./install_python313.sh
 
 ## トラブルシューティング
 
-### Q1: Python 3.13がリポジトリに見つからない
+### Q1: Pythonパッケージが見つからない
 
-**回答**: Raspberry Pi OS Bookwormでは標準リポジトリにPython 3.13がない可能性があります。
+**回答**: `apt-get update` を実行してリポジトリ情報を更新してください。
 
 **対処法**:
-- **オプション1**: スクリプト実行時にPython 3.11を選択 (互換性あり)
-- **オプション2**: Ubuntu PPAを使用 (WSL環境)
-  ```bash
-  sudo add-apt-repository ppa:deadsnakes/ppa
-  sudo apt-get update
-  ```
-- **オプション3**: ソースからビルド (時間がかかる)
+```bash
+# リポジトリ更新
+sudo apt-get update
+
+# Pythonパッケージ確認
+apt-cache search python3 | grep "^python3 "
+```
+
+Raspberry Pi OS BookwormにはPython 3.11が標準で含まれています。
 
 ### Q2: WSLが見つからない (Windows)
 
