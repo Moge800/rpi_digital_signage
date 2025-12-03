@@ -24,7 +24,7 @@ python -m pip download `
     --platform manylinux_2_17_aarch64 `
     --platform manylinux_2_28_aarch64 `
     --only-binary=:all: `
-    --python-version 3.13 `
+    --python-version 3.11 `
     --dest packages/
 
 Write-Host "[2/2] アーカイブを作成中..."

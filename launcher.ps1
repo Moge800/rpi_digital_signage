@@ -16,22 +16,27 @@ Set-Location $scriptDir
 
 Write-Host "[1/4] 環境確認" -ForegroundColor Yellow
 
-# Python 3.13確認
+# Python確認 (3.11以上推奨)
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
 if (-not $pythonCmd) {
     Write-Host "エラー: pythonコマンドが見つかりません" -ForegroundColor Red
-    Write-Host "Python 3.13をインストールしてください" -ForegroundColor Yellow
+    Write-Host "Python 3.11以上をインストールしてください" -ForegroundColor Yellow
     Write-Host "  https://www.python.org/downloads/" -ForegroundColor Yellow
     exit 1
 }
 
 $pythonVersion = python --version
-if ($pythonVersion -notmatch "3\.13") {
-    Write-Host "警告: Python 3.13が推奨されています" -ForegroundColor Yellow
-    Write-Host "現在のバージョン: $pythonVersion" -ForegroundColor Yellow
-}
-
 Write-Host "✓ $pythonVersion" -ForegroundColor Green
+
+# Python 3.11以上の確認 (警告のみ)
+if ($pythonVersion -match "Python 3\.(\d+)") {
+    $minorVersion = [int]$matches[1]
+    if ($minorVersion -lt 11) {
+        Write-Host "警告: Python 3.11以上が必要です" -ForegroundColor Yellow
+        Write-Host "現在のバージョン: $pythonVersion" -ForegroundColor Yellow
+        Write-Host "動作不安定になる可能性があります" -ForegroundColor Yellow
+    }
+}
 
 # .envファイル確認
 if (-not (Test-Path ".env")) {

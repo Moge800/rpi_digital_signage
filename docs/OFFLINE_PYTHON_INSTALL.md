@@ -142,11 +142,11 @@ python3.11 -m venv --help
 cd ~/rpi_digital_signage
 ```
 
-### 5-2. 仮想環境作成 (Python 3.13使用)
+### 5-2. 仮想環境作成 (Python 3.11以上使用)
 
 ```bash
-# Python 3.11で仮想環境作成
-python3.11 -m venv .venv
+# Python 3.11以上で仮想環境作成
+python3 -m venv .venv
 # または標準pythonコマンド
 python3 -m venv .venv
 
@@ -177,50 +177,42 @@ uv pip list
 
 ## トラブルシューティング
 
-### ケース1: Python 3.13がリポジトリに存在しない
+### ケース1: Pythonパッケージが見つからない
 
 **症状**:
 ```
-⚠ python3.13がリポジトリに見つかりません
+⚠ python3パッケージがリポジトリに見つかりません
+apt-get update を先に実行してください
 ```
 
 **対処法**:
 
-#### オプションA: Python 3.11を使用 (推奨)
+#### オプションA: Raspberry Pi OS Bookworm標準Pythonを使用 (推奨)
 
-スクリプト実行時に選択肢が表示されます:
-```
-Python 3.11でダウンロードしますか? (y/N): y
-```
-
-プロジェクト側で`pyproject.toml`を修正:
-```toml
-requires-python = ">=3.11"  # 3.13 → 3.11
-```
-
-#### オプションB: deadsnakes PPAを使用 (Ubuntu/WSL)
-
+Raspberry Pi OS BookwormはデフォルトでPython 3.11がインストール済み:
 ```bash
-# WSL/Ubuntu環境で
-sudo add-apt-repository ppa:deadsnakes/ppa
-sudo apt-get update
-
-# その後、ダウンロードスクリプト再実行
-./download_python313_packages.sh
+# Bookwormに付属のPython 3.11を使用
+sudo apt-get install python3 python3-venv python3-dev
+python3 --version  # Python 3.11.x と表示される
 ```
 
-#### オプションC: ソースからビルド (上級者向け)
+プロジェクト側では`pyproject.toml`が既に対応済み:
+```toml
+requires-python = ">=3.11"  # Python 3.11以上をサポート
+```
 
-Raspberry Pi上でPython 3.13をソースからコンパイル:
+#### オプションB: ソースからビルド (上級者向け)
+
+Raspberry Pi上で最新Pythonをソースからコンパイル:
 ```bash
 # ビルド依存関係インストール (オンライン環境で実施)
 sudo apt-get install build-essential zlib1g-dev libncurses5-dev \
     libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev wget
 
-# Python 3.13ソースダウンロード
-wget https://www.python.org/ftp/python/3.13.0/Python-3.13.0.tgz
-tar -xf Python-3.13.0.tgz
-cd Python-3.13.0
+# Python最新版ソースダウンロード (例: 3.12.7)
+wget https://www.python.org/ftp/python/3.12.7/Python-3.12.7.tgz
+tar -xf Python-3.12.7.tgz
+cd Python-3.12.7
 
 # ビルド・インストール
 ./configure --enable-optimizations
@@ -241,7 +233,7 @@ dpkg: dependency problems prevent configuration
 sudo apt-get install -f -y
 
 # 強制的に依存関係無視 (最終手段)
-cd python313_packages/debs
+cd python_packages/debs
 sudo dpkg -i --force-depends *.deb
 ```
 
@@ -266,11 +258,11 @@ sudo journalctl --vacuum-time=7d
 
 ## 補足情報
 
-### パッケージ内容
+#### パッケージ内容
 
-- **python3.13**: Python 3.13インタープリタ本体
-- **python3.13-venv**: 仮想環境作成モジュール
-- **python3.13-dev**: C拡張開発用ヘッダー (uv, Cython等で必要)
+- **python3**: Python 3.11インタープリタ本体 (Bookworm標準)
+- **python3-venv**: 仮想環境作成モジュール
+- **python3-dev**: C拡張開発用ヘッダー (uv, Cython等で必要)
 - **build-essential**: gcc, g++, make (pymcprotocol等のビルド用)
 - **libffi-dev, libssl-dev**: 暗号化・FFIライブラリ (Pydantic, uvicorn等)
 

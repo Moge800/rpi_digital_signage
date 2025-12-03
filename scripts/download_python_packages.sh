@@ -174,14 +174,14 @@ echo ""
 # 権限チェック
 if [ "$EUID" -ne 0 ]; then 
     echo -e "${RED}このスクリプトはroot権限で実行してください${NC}"
-    echo "実行例: sudo ./install_python313.sh"
+    echo "実行例: sudo ./install_python.sh"
     exit 1
 fi
 
 # カレントディレクトリ確認
 if [ ! -d "debs" ]; then
     echo -e "${RED}debsディレクトリが見つかりません${NC}"
-    echo "このスクリプトはpython313_packages/ディレクトリ内で実行してください"
+    echo "このスクリプトはpython_packages/ディレクトリ内で実行してください"
     exit 1
 fi
 

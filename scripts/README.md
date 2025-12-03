@@ -8,7 +8,7 @@
 
 ## スクリプト一覧
 
-### 1. `download_python313_packages_windows.ps1` (Windows PowerShell)
+### 1. `download_python_packages_windows.ps1` (Windows PowerShell)
 
 **用途**: Windows環境でWSL経由でパッケージをダウンロード
 
@@ -18,7 +18,7 @@
 
 **実行方法**:
 ```powershell
-.\download_python313_packages_windows.ps1
+.\download_python_packages_windows.ps1
 ```
 
 > **Note**: このスクリプトは内部で `download_python_packages.sh` を呼び出します。
@@ -91,7 +91,7 @@ sudo ./install_python.sh
 ```
 [Windows/Linux PC]
     ↓
-(1) download_python313_packages_windows.ps1 実行
+(1) download_python_packages_windows.ps1 実行
     ↓
   python_packages.tar.gz 生成
     ↓
