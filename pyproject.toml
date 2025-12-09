@@ -27,6 +27,11 @@ dependencies = [
 
 [tool.mypy]
 ignore_missing_imports = true
+# キャッシュで高速化
+cache_dir = ".mypy_cache"
+incremental = true
+# 並列処理で高速化（CPUコア数に応じて調整）
+# 例: 4コアなら --processes 4
 
 [tool.ruff.lint]
 ignore = ["E402"]  # sys.path操作後のインポートを許可
