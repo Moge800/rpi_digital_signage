@@ -4,6 +4,7 @@ PLCから各種データ(生産数、アラーム、タイムスタンプ等)を
 エラーハンドリングを含む汎用的なfetchヘルパー関数も提供。
 """
 
+import math
 from datetime import datetime
 
 from backend.logging import backend_logger as logger
@@ -323,7 +324,8 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     config = get_config_data(production_type)
 
     # 機種設定を使って計算
-    remain_min = calculate_remain_minutes(plan, actual, production_type)
+    _remain_min = calculate_remain_minutes(plan, actual, production_type)
+    remain_min = math.ceil(_remain_min)
     remain_pallet = calculate_remain_pallet(plan, actual, production_type)
     fully = config.fully
     timestamp = fetch_production_timestamp(client, device_dict["TIME_DEVICE"])
