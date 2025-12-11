@@ -2,6 +2,7 @@ import os
 from enum import Enum
 from pydantic import IPvAnyAddress, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
 
 
 class Theme(str, Enum):
@@ -71,7 +72,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self: Any, **kwargs: Any) -> None:
         # .envファイルの存在チェック
         if not os.path.exists(".env") and not kwargs:
             raise FileNotFoundError(
@@ -113,7 +114,7 @@ class PLCDeviceList(BaseSettings):
         extra="ignore",
     )
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self: Any, **kwargs: Any) -> None:
         # .envファイルの存在チェック
         if not os.path.exists(".env") and not kwargs:
             raise FileNotFoundError(
