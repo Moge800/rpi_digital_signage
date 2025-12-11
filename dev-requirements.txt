@@ -148,6 +148,7 @@ typing-extensions==4.15.0
     #   mypy
     #   pydantic
     #   pydantic-core
+    #   referencing
     #   streamlit
     #   typing-inspection
 typing-inspection==0.4.2
