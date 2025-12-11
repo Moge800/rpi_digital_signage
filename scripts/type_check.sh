@@ -9,6 +9,9 @@ uv run ruff check src/ tests/
 echo "🎨 Running Black..."
 uv run black --check src/ tests/
 
+echo "🧪 Running ty Check..."
+uvx ty check .
+
 echo "🔎 Running mypy..."
 uv run mypy src/ tests/
 
