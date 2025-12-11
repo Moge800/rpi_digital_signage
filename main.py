@@ -3,13 +3,16 @@ import sys
 import time
 from pathlib import Path
 from typing import Optional
+from logging import Logger
 
 # プロジェクトルートをPythonパスに追加（インポートパス解決のため）
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
 
-def stop_process(process: Optional[subprocess.Popen], name: str, logger) -> None:
+def stop_process(
+    process: Optional[subprocess.Popen], name: str, logger: Logger
+) -> None:
     """プロセスを安全に終了する
 
     Args:
