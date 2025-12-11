@@ -4,9 +4,24 @@ from pymcprotocol import Type3E
 from .base import BasePLCClient
 from config.settings import Settings
 from backend.logging import plc_logger as logger
+from typing import Any, Callable, TypeAlias
+
+Func: TypeAlias = Callable[..., Any]
 
 
-def auto_reconnect(func):
+def func_name(func: Func) -> str:
+    """関数の名前を取得するユーティリティ関数
+
+    Args:
+        func: 関数オブジェクト
+
+    Returns:
+        str: 関数名
+    """
+    return getattr(func, "__name__", repr(func))
+
+
+def auto_reconnect(func: Func) -> Func:
     """PLC通信エラー時に自動再接続を試みるデコレータ
 
     設定でAUTO_RECONNECT=trueの場合、ConnectionError等の発生時に
@@ -20,11 +35,11 @@ def auto_reconnect(func):
     """
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         try:
             return func(self, *args, **kwargs)
         except (ConnectionError, OSError, TimeoutError) as e:
-            logger.error(f"Error in {func.__name__}: {e}")
+            logger.error(f"Error in {func_name(func)}: {e}")
             if getattr(self.settings, "AUTO_RECONNECT", False):
                 logger.info("Attempting to reconnect...")
                 if self.reconnect():
@@ -32,12 +47,12 @@ def auto_reconnect(func):
                     return func(self, *args, **kwargs)
             # ここまで来たら本当にダメなやつ
             logger.error(f"Operation failed after reconnect attempts: {e}")
-            raise
+            raise  # TODO:設定で自動再起動コードを追加する。
 
     return wrapper
 
 
-def debug_dummy_read(func):
+def debug_dummy_read(func: Func) -> Func:
     """デバッグモード時にダミーデータを返すデコレータ
 
     設定でDEBUG_DUMMY_READ=trueの場合、実際のPLC通信を行わず
@@ -51,15 +66,16 @@ def debug_dummy_read(func):
     """
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+        _func_name = func_name(func)
         if self.settings.DEBUG_DUMMY_READ:
             logger.debug(
-                f"Dummy read for {func.__name__} with args: {args}, kwargs: {kwargs}"
+                f"Dummy read for {_func_name} with args: {args}, kwargs: {kwargs}"
             )
-            if func.__name__ == "read_words":
+            if _func_name == "read_words":
                 size = kwargs.get("size", args[1] if len(args) > 1 else 1)
                 return [0] * size  # ダミーのワードデータ
-            elif func.__name__ == "read_bits":
+            elif _func_name == "read_bits":
                 size = kwargs.get("size", args[1] if len(args) > 1 else 1)
                 return [0] * size  # ダミーのビットデータ
         return func(self, *args, **kwargs)
