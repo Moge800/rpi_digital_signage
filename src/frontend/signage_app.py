@@ -66,7 +66,7 @@ if USE_PLC:
     if "cleanup_registered" not in st.session_state:
         import atexit
 
-        def cleanup_plc():
+        def cleanup_plc() -> None:
             """アプリケーション終了時にPLC接続をクリーンアップ"""
             try:
                 if client and client.connected:
