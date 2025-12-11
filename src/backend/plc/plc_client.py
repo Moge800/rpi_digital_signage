@@ -51,7 +51,7 @@ def auto_reconnect(func: Func) -> Func:
                 func
             ) in ["read_words", "read_bits"]:
                 logger.critical("Reconnection failed. Restarting application...")
-                from system_utils import restart_system
+                from backend.system_utils import restart_system
 
                 restart_system()
 
