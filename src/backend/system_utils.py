@@ -99,3 +99,43 @@ def set_system_clock(target_time: datetime) -> bool:
     except OSError as e:
         logger.error(f"Failed to set system clock (OS error): {e}")
         return False
+
+
+def restart_system() -> bool:
+    """システムを再起動する
+
+    Returns:
+        bool: 再起動コマンドの実行に成功した場合True、失敗した場合False
+
+    Raises:
+        OSError: システムコマンド実行に失敗した場合
+        PermissionError: 権限不足の場合
+    """
+    try:
+        if is_windows():  # Windows
+            subprocess.run(
+                ["shutdown", "/r", "/t", "0"],
+                check=True,
+                capture_output=True,
+            )
+        else:  # Unix/Linux (Raspberry Pi)
+            # sudoersでNOPASSWD設定が必要: pi ALL=(ALL) NOPASSWD: /sbin/reboot
+            subprocess.run(
+                ["sudo", "reboot"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+        logger.info("System restart command executed.")
+        return True
+
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to restart system (command failed): {e.stderr}")
+        return False
+    except PermissionError as e:
+        logger.error(f"Failed to restart system (permission denied): {e}")
+        return False
+    except OSError as e:
+        logger.error(f"Failed to restart system (OS error): {e}")
+        return False

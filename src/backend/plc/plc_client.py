@@ -47,6 +47,14 @@ def auto_reconnect(func: Func) -> Func:
                     return func(self, *args, **kwargs)
             # ここまで来たら本当にダメなやつ
             logger.error(f"Operation failed after reconnect attempts: {e}")
+            if getattr(self.settings, "RECONNECT_RESTART", False) and func_name(
+                func
+            ) in ["read_words", "read_bits"]:
+                logger.critical("Reconnection failed. Restarting application...")
+                from system_utils import restart_system
+
+                restart_system()
+
             raise  # TODO:設定で自動再起動コードを追加する。
 
     return wrapper

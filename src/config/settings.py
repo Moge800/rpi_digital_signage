@@ -43,6 +43,7 @@ class Settings(BaseSettings):
         PLC_PORT: PLCのポート番号 (1-65535)
         AUTO_RECONNECT: PLC切断時の自動再接続フラグ
         RECONNECT_RETRY: 再接続試行回数 (0-10)
+        RECONNECT_RESTART: 再接続失敗後にアプリケーションを再起動するかどうかのフラグ
         RECONNECT_DELAY: 再接続試行間隔(秒) (0-60)
         DEBUG_DUMMY_READ: ダミーデータ読み取りモード
         USE_PLC: PLC使用フラグ (Falseの場合はダミーデータ)
@@ -57,6 +58,7 @@ class Settings(BaseSettings):
     PLC_PORT: int = Field(gt=0, le=65535)  # 1-65535の範囲
     AUTO_RECONNECT: bool = True
     RECONNECT_RETRY: int = Field(ge=0, le=10)  # 0-10回の範囲
+    RECONNECT_RESTART: bool = False
     RECONNECT_DELAY: float = Field(ge=0.0, le=60.0)  # 0-60秒の範囲
     DEBUG_DUMMY_READ: bool = False
     USE_PLC: bool = True
