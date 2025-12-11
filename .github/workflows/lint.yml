@@ -36,7 +36,7 @@ jobs:
     
     - name: Run ty
       run: |
-        uv ty check src/ tests/
+        uvx ty check src/ tests/
         
     - name: Run mypy
       run: |
