@@ -228,7 +228,7 @@ class PLCClient(BasePLCClient):
         logger.error("Failed to reconnect after retries.")
         return False
 
-    def _insure_connection(self) -> None:
+    def _ensure_connection(self) -> None:
         """PLC接続が確立されていることを保証するユーティリティメソッド
 
         Raises:
@@ -255,7 +255,7 @@ class PLCClient(BasePLCClient):
             @auto_reconnectデコレータにより、通信エラー時は
             自動的に再接続を試みる (AUTO_RECONNECT=true時)。
         """
-        self._insure_connection()
+        self._ensure_connection()
         data = self.plc.batchread_wordunits(device_name, size)
         logger.debug(f"Read words {device_name}: {data}")
         return data
@@ -278,7 +278,7 @@ class PLCClient(BasePLCClient):
             @auto_reconnectデコレータにより、通信エラー時は
             自動的に再接続を試みる (AUTO_RECONNECT=true時)。
         """
-        self._insure_connection()
+        self._ensure_connection()
         data = self.plc.batchread_bitunits(device_name, size)
         logger.debug(f"Read bits {device_name}: {data}")
         return data
@@ -299,7 +299,7 @@ class PLCClient(BasePLCClient):
             @auto_reconnectデコレータにより、通信エラー時は
             自動的に再接続を試みる (AUTO_RECONNECT=true時)。
         """
-        self._insure_connection()
+        self._ensure_connection()
         data = self.plc.batchread_wordunits(device_name, size * 2)
         data = [
             int.from_bytes(
