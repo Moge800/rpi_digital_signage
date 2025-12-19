@@ -283,6 +283,35 @@ class PLCClient(BasePLCClient):
         logger.debug(f"Read bits {device_name}: {data}")
         return data
 
+    @auto_reconnect
+    def read_dwords(self, device_name: str, size: int = 1) -> list[int]:
+        """PLCからダブルワードデバイスを読み取る
+
+        Args:
+            device_name: デバイス名 (例: "D100", "SD210")
+            size: 読み取るダブルワード数 (デフォルト: 1)
+            1ダブルワード = 2ワード
+        Returns:
+            list[int]: 読み取ったダブルワードデータのリスト (length=size)
+        Raises:
+            ConnectionError: PLC未接続または通信エラー時
+        Note:
+            @auto_reconnectデコレータにより、通信エラー時は
+            自動的に再接続を試みる (AUTO_RECONNECT=true時)。
+        """
+        self._insure_connection()
+        data = self.plc.batchread_wordunits(device_name, size * 2)
+        data = [
+            int.from_bytes(
+                self.plc.word_list_to_bytes(data[i * 2 : i * 2 + 2]),
+                byteorder="little",
+                signed=True,
+            )
+            for i in range(size)
+        ]
+        logger.debug(f"Read dwords {device_name}: {data}")
+        return data
+
 
 def get_plc_client() -> PLCClient:
     """PLCクライアントのシングルトンインスタンスを取得
