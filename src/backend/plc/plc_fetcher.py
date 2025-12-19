@@ -150,7 +150,9 @@ def fetch_plan(client: PLCClient, device_address: str) -> int:
         >>> plan = fetch_plan(client, "D300")
         >>> print(plan)  # 45000
     """
-    return _fetch_word(client, device_address, "production plan", default=0)
+    val = _fetch_word(client, device_address, "production plan", default=0)
+
+    return max(0, val)  # 負の値は0に補正
 
 
 def fetch_actual(client: PLCClient, device_address: str) -> int:
@@ -168,7 +170,8 @@ def fetch_actual(client: PLCClient, device_address: str) -> int:
         >>> actual = fetch_actual(client, "D400")
         >>> print(actual)  # 30000
     """
-    return _fetch_word(client, device_address, "production actual", default=0)
+    val = _fetch_word(client, device_address, "production actual", default=0)
+    return max(0, val)  # 負の値は0に補正
 
 
 def fetch_in_operating(client: PLCClient, device_address: str) -> bool:
