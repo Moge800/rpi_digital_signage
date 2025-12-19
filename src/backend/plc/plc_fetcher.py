@@ -21,6 +21,7 @@ def _fetch_word(
     device_address: str,
     field_name: str,
     default: int = 0,
+    double: bool = False,
 ) -> int:
     """PLCからワードデータを取得する汎用関数
 
@@ -29,12 +30,16 @@ def _fetch_word(
         device_address: デバイスアドレス
         field_name: フィールド名（ログ出力用）
         default: エラー時のデフォルト値
+        double: Trueならダブルワードとして取得
 
     Returns:
         int: 取得したワード値
     """
     try:
-        data = client.read_words(device_address, size=1)
+        if double:
+            data = client.read_dwords(device_address, size=1)
+        else:
+            data = client.read_words(device_address, size=1)
         return data[0]
     except (ConnectionError, OSError, ValueError, IndexError) as e:
         logger.warning(
