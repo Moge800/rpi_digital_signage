@@ -290,27 +290,38 @@ class PLCClient(BasePLCClient):
         Args:
             device_name: デバイス名 (例: "D100", "SD210")
             size: 読み取るダブルワード数 (デフォルト: 1)
-            1ダブルワード = 2ワード
+                1ダブルワード = 2ワード = 32ビット
+
         Returns:
             list[int]: 読み取ったダブルワードデータのリスト (length=size)
+                符号付き32ビット整数 (-2147483648 ~ 2147483647)
+
         Raises:
             ConnectionError: PLC未接続または通信エラー時
+
         Note:
             @auto_reconnectデコレータにより、通信エラー時は
             自動的に再接続を試みる (AUTO_RECONNECT=true時)。
+            リトルエンディアン形式で2ワードを32ビット整数に変換する。
         """
         self._ensure_connection()
         data = self.plc.batchread_wordunits(device_name, size * 2)
-        data = [
+        # 連続する2ワード(16ビット×2)を32ビット整数に変換
+        # 例: [0x1234, 0x5678] → 0x56781234 (リトルエンディアン)
+        dwords = [
             int.from_bytes(
-                self.plc.word_list_to_bytes(data[i * 2 : i * 2 + 2]),
+                # 各ワードを2バイトに分解してリトルエンディアンで結合
+                b"".join(
+                    word.to_bytes(2, byteorder="little")
+                    for word in data[i * 2 : i * 2 + 2]
+                ),
                 byteorder="little",
                 signed=True,
             )
             for i in range(size)
         ]
-        logger.debug(f"Read dwords {device_name}: {data}")
-        return data
+        logger.debug(f"Read dwords {device_name}: {dwords}")
+        return dwords
 
 
 def get_plc_client() -> PLCClient:
