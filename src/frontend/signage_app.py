@@ -102,14 +102,16 @@ def get_production_data() -> ProductionData:
 
     USE_PLC=true時はPLCから実データを取得。
     USE_PLC=false時はダミーデータを生成。
-    PLC通信エラー時は自動的にダミーデータにフォールバック。
+    エラー時は画面クラッシュを防ぎ、エラー状態を表示。
 
     Returns:
         ProductionData: 生産データ (計画/実績/アラーム等)
+            エラー時はalarm=True、alarm_msgにエラー内容を設定
 
     Note:
         この関数はStreamlitの自動リフレッシュサイクルごとに
         呼び出される (REFRESH_INTERVAL秒ごと)。
+        全ての例外をキャッチしてホワイトアウトを防止。
 
     Examples:
         >>> data = get_production_data()
@@ -121,10 +123,20 @@ def get_production_data() -> ProductionData:
         try:
             return fetch_production_data(client)
         except (ConnectionError, OSError, TimeoutError) as e:
-            logger.error(f"PLC data fetch error: {e}")
-            st.error(f"PLCデータ取得エラー: {e}")
-            # エラー時はダミーデータにフォールバック
-            return _get_dummy_data()
+            logger.error(f"PLC communication error: {e}")
+            error_data = ProductionData.error()
+            error_data.alarm_msg = f"PLC通信エラー: {str(e)[:50]}"
+            return error_data
+        except ValueError as e:
+            logger.error(f"PLC data validation error: {e}")
+            error_data = ProductionData.error()
+            error_data.alarm_msg = f"データ異常検出: {str(e)[:50]}"
+            return error_data
+        except Exception as e:
+            logger.critical(f"Unexpected error in get_production_data: {e}")
+            error_data = ProductionData.error()
+            error_data.alarm_msg = f"システムエラー: {str(e)[:50]}"
+            return error_data
     else:
         # ダミーモード
         return _get_dummy_data()
