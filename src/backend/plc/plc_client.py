@@ -55,7 +55,7 @@ def auto_reconnect(func: Func) -> Func:
 
                 restart_system()
 
-            raise  # TODO:設定で自動再起動コードを追加する。
+            raise
 
     return wrapper
 
