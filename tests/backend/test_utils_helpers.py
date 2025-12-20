@@ -118,7 +118,7 @@ class TestFetchFunctions:
 
         assert result == 10000
         mock_fetch_word.assert_called_once_with(
-            mock_client, "D300", "production plan", default=0
+            mock_client, "D300", "production plan", default=0, double=True
         )
 
     @patch("backend.plc.plc_fetcher._fetch_word")
@@ -131,7 +131,7 @@ class TestFetchFunctions:
 
         assert result == 7500
         mock_fetch_word.assert_called_once_with(
-            mock_client, "D400", "production actual", default=0
+            mock_client, "D400", "production actual", default=0, double=True
         )
 
     @patch("backend.plc.plc_fetcher._fetch_bit")
