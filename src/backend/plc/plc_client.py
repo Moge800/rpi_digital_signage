@@ -49,7 +49,7 @@ def auto_reconnect(func: Func) -> Func:
             logger.error(f"Operation failed after reconnect attempts: {e}")
             if getattr(self.settings, "RECONNECT_RESTART", False) and func_name(
                 func
-            ) in ["read_words", "read_bits"]:
+            ) in ["read_words", "read_bits", "read_dwords"]:
                 logger.critical("Reconnection failed. Restarting application...")
                 from backend.system_utils import restart_system
 
