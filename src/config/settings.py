@@ -44,7 +44,7 @@ class Settings(BaseSettings):
         AUTO_RECONNECT: PLC切断時の自動再接続フラグ
         RECONNECT_RETRY: 再接続試行回数 (0-10)
         RECONNECT_RESTART: 再接続失敗後にアプリケーションを再起動するかどうかのフラグ
-        RECONNECT_DELAY: 再接続試行間隔(秒) (0-60)
+        RECONNECT_DELAY: 再接続試行間隔(秒) (0-60) - reconnect()での待機時間
         DEBUG_DUMMY_READ: ダミーデータ読み取りモード
         USE_PLC: PLC使用フラグ (Falseの場合はダミーデータ)
         LINE_NAME: ライン名 (機種マスタJSONファイル名と対応)

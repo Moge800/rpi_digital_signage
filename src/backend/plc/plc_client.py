@@ -154,27 +154,42 @@ class PLCClient(BasePLCClient):
 
         設定されたIPアドレスとポートを使用してPLCへの接続を確立する。
         接続成功時はconnectedフラグをTrueに設定する。
+        ConnectionRefusedError時は、RECONNECT_RETRY設定値の回数までリトライする。
 
         Returns:
             bool: 接続成功時True、失敗時False
         """
-        try:
-            self.plc.connect(str(self.settings.PLC_IP), self.settings.PLC_PORT)
-            logger.info(
-                f"Connected to PLC at {self.settings.PLC_IP}:{self.settings.PLC_PORT}"
-            )
-            self.connected = True
-            return True
+        for attempt in range(self.settings.RECONNECT_RETRY):
+            try:
+                self.plc.connect(str(self.settings.PLC_IP), self.settings.PLC_PORT)
+                logger.info(
+                    f"Connected to PLC at {self.settings.PLC_IP}:{self.settings.PLC_PORT}"
+                )
+                self.connected = True
+                return True
 
-        except (ConnectionError, OSError, TimeoutError) as e:
-            logger.error(f"Failed to connect to PLC: {e}")
-            self.connected = False
-            return False
+            except ConnectionRefusedError as e:
+                if attempt < self.settings.RECONNECT_RETRY - 1:
+                    logger.warning(
+                        f"Connection refused (attempt {attempt + 1}/{self.settings.RECONNECT_RETRY}): {e}. "
+                        "PLC may be starting up, retrying in 5 seconds..."
+                    )
+                    time.sleep(5)
+                else:
+                    logger.error(
+                        f"Failed to connect to PLC after {self.settings.RECONNECT_RETRY} attempts: {e}"
+                    )
+                    self.connected = False
+                    return False
 
-        except ConnectionRefusedError as e:
-            logger.error(f"Failed to connect to PLC port check and restart PLC: {e}")
-            self.connected = False
-            return False
+            except (ConnectionError, OSError, TimeoutError) as e:
+                logger.error(f"Failed to connect to PLC: {e}")
+                self.connected = False
+                return False
+
+        # ループが全て終わった場合（想定外だが安全のため）
+        self.connected = False
+        return False
 
     def disconnect(self) -> bool:
         """PLCから切断する
@@ -201,6 +216,8 @@ class PLCClient(BasePLCClient):
 
         設定されたRECONNECT_RETRY回数分、再接続を試みる。
         各試行の間にはRECONNECT_DELAY秒の遅延を挟む。
+        ConnectionRefusedError時は、PLCポート開放を待つため
+        より長い待機時間（15秒）を使用する。
 
         Returns:
             bool: 再接続成功時True、全試行失敗時False
@@ -210,22 +227,33 @@ class PLCClient(BasePLCClient):
             自動的にこのメソッドが呼び出される。
         """
         for i in range(self.settings.RECONNECT_RETRY):
-            try:
-                logger.info(
-                    f"Reconnect attempt {i+1}/{self.settings.RECONNECT_RETRY}..."
-                )
-                self.disconnect()
-                self.connect()
-                if self.connected:
-                    logger.info("Reconnect succeeded.")
-                    return True
+            logger.info(f"Reconnect attempt {i+1}/{self.settings.RECONNECT_RETRY}...")
 
+            try:
+                self.disconnect()
+                # 直接PLC接続を試みる（connect()の内部リトライを避けるため）
+                self.plc.connect(str(self.settings.PLC_IP), self.settings.PLC_PORT)
+                logger.info("Reconnect succeeded.")
+                self.connected = True
+                return True
+
+            except ConnectionRefusedError as e:
+                # PLCポートが開いていない（PLC起動中の可能性）
+                logger.warning(
+                    f"Reconnect attempt {i+1} port refused: {e}. "
+                    "PLC may be starting up, waiting longer..."
+                )
+                self.connected = False
+                # PLCの起動を待つため、通常より長く待機（15秒）
+                time.sleep(15)
+                continue
             except (ConnectionError, OSError, TimeoutError) as e:
                 logger.warning(f"Reconnect attempt {i+1} failed: {e}")
-            except ConnectionRefusedError as e:
-                logger.warning(f"Reconnect attempt {i+1} port check failed: {e}")
-            time.sleep(self.settings.RECONNECT_DELAY)
+                self.connected = False
+                time.sleep(self.settings.RECONNECT_DELAY)
+
         logger.error("Failed to reconnect after retries.")
+        self.connected = False
         return False
 
     def _ensure_connection(self) -> None:
