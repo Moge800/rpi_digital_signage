@@ -138,7 +138,8 @@ def render_production_metrics(data: ProductionData, progress: float) -> None:
     st.progress(progress)
 
     # パレット情報（最重要）
-    required_pallets = data.plan / data.fully
+    # ゼロ除算防止: fully=0の場合は0を返す
+    required_pallets = data.plan / data.fully if data.fully > 0 else 0
     st.markdown(
         f"<div class='kpi-value-big' style='text-align: center; margin-top: 1rem;'>{data.remain_pallet:.1f} <span style='font-size: 0.6em; color: #888;'>/ {required_pallets:.1f}</span></div>",
         unsafe_allow_html=True,
