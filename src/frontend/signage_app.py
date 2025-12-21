@@ -164,9 +164,19 @@ def _get_dummy_data() -> ProductionData:
 
     line_name = settings.LINE_NAME
     production_type = random.randint(0, MAX_PRODUCTION_TYPE)
-    config = get_config_data(production_type)
-    production_name = config.name if config else "NONE"
-    fully = config.fully if config else 0  # 満杯パレット数を取得
+
+    try:
+        config = get_config_data(production_type)
+    except ValueError as e:
+        # 機種設定が見つからない場合はエラーデータを返す (0/0表示)
+        logger.warning(f"Dummy mode config error: {e}")
+        error_data = ProductionData.error()
+        error_data.line_name = line_name
+        error_data.alarm_msg = f"機種設定エラー: type={production_type}"
+        return error_data
+
+    production_name = config.name
+    fully = config.fully
     plan = 45000
     actual = random.randint(0, plan)
     remain_seconds = max(0, (plan - actual) * SECONDS_PER_PRODUCT)
