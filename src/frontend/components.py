@@ -79,7 +79,7 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
 
     fig.update_layout(
         margin=dict(t=30, b=5, l=30, r=30),
-        height=350,  # フルHD対応：ゲージの高さを制限
+        height=350,  # 1920x1080対応：ゲージの高さ
         paper_bgcolor=colors["gauge_bg"],
         font=dict(color=colors["text_color"]),
     )

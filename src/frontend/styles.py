@@ -105,15 +105,15 @@ def get_page_styles(theme: str = "dark") -> str:
         color: {colors["text_color"]};
     }}
     .block-container {{
-        padding-top: 1rem;
+        padding-top: 0.8rem;
         padding-bottom: 0.2rem;
         max-width: 95%;
         background-color: {colors["bg_color"]};
     }}
     .header-title {{
-        font-size: 2.8rem;
+        font-size: 2.6rem;
         font-weight: 700;
-        padding: 0.2rem 0;
+        padding: 0.1rem 0;
         color: {colors["header_color"]};
     }}
     .header-time {{
@@ -122,46 +122,46 @@ def get_page_styles(theme: str = "dark") -> str:
         color: {colors["text_secondary"]};
     }}
     .kpi-label {{
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         color: {colors["kpi_label_color"]};
     }}
     .kpi-value-big {{
-        font-size: 4.5rem;
+        font-size: 4.2rem;
         font-weight: 800;
         color: {colors["kpi_value_color"]};
     }}
     .kpi-sub {{
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         color: {colors["kpi_sub_color"]};
     }}
     .kpi-value-norm {{
-        font-size: 3.5rem;
+        font-size: 3.2rem;
         font-weight: 800;
         color: {colors["kpi_value_color"]};
     }}
     .status-ok {{
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         background: {colors["status_ok_bg"]};
-        padding: 0.8rem;
-        border-radius: 0.6rem;
+        padding: 0.6rem;
+        border-radius: 0.5rem;
         border: 1px solid {colors["status_ok_border"]};
         color: {colors["text_color"]};
         font-weight: 600;
     }}
     .status-warn {{
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         background: {colors["status_warn_bg"]};
-        padding: 0.8rem;
-        border-radius: 0.6rem;
+        padding: 0.6rem;
+        border-radius: 0.5rem;
         border: 1px solid {colors["status_warn_border"]};
         color: {colors["text_color"]};
         font-weight: 600;
     }}
     .status-alarm {{
-        font-size: 1.8rem;
+        font-size: 1.6rem;
         background: {colors["status_alarm_bg"]};
-        padding: 0.8rem;
-        border-radius: 0.6rem;
+        padding: 0.6rem;
+        border-radius: 0.5rem;
         border: 1px solid {colors["status_alarm_border"]};
         color: {colors["text_color"]};
         font-weight: 600;
@@ -169,10 +169,10 @@ def get_page_styles(theme: str = "dark") -> str:
     .alarm-bar {{
         background: {colors["alarm_bar_error_bg"]};
         color: white;
-        font-size: 2.5rem;
+        font-size: 2.2rem;
         font-weight: 700;
-        padding: 0.4rem 1.0rem;
-        border-radius: 0.5rem;
+        padding: 0.3rem 0.8rem;
+        border-radius: 0.4rem;
         text-align: left;
     }}
     .footer {{
