@@ -111,13 +111,13 @@ def get_page_styles(theme: str = "dark") -> str:
         background-color: {colors["bg_color"]};
     }}
     .header-title {{
-        font-size: 2.6rem;
+        font-size: 3.0rem;
         font-weight: 700;
         padding: 0.1rem 0;
         color: {colors["header_color"]};
     }}
     .header-time {{
-        font-size: 1.0rem;
+        font-size: 3.0rem;
         text-align: right;
         color: {colors["text_secondary"]};
     }}
