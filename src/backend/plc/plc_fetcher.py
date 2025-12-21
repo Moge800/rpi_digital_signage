@@ -324,6 +324,14 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     production_type = fetch_production_type(
         client, device_dict["PRODUCTION_TYPE_DEVICE"]
     )
+
+    # production_typeの範囲チェック (0-15に制限)
+    if production_type < 0 or production_type > 15:
+        logger.warning(
+            f"Invalid production_type {production_type} from PLC, defaulting to 0"
+        )
+        production_type = 0
+
     plan = fetch_plan(client, device_dict["PLAN_DEVICE"])
     actual = fetch_actual(client, device_dict["ACTUAL_DEVICE"])
     in_operating = fetch_in_operating(client, device_dict["IN_OPERATING_DEVICE"])
@@ -331,7 +339,26 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     alarm_msg = fetch_alarm_msg(client, device_dict["ALARM_MSG_DEVICE"])
 
     # 機種設定を取得してproduction_nameを解決
-    config = get_config_data(production_type)
+    try:
+        config = get_config_data(production_type)
+    except ValueError as e:
+        # 機種設定が見つからない場合はデフォルト値を使用
+        logger.warning(f"Config not found for production_type {production_type}: {e}")
+        # デフォルトのエラーデータを返す
+        return ProductionData(
+            line_name=line_name,
+            production_type=production_type,
+            production_name="UNKNOWN",
+            plan=plan,
+            actual=actual,
+            in_operating=in_operating,
+            remain_min=0,
+            remain_pallet=0,
+            fully=1,  # ゼロ除算防止
+            alarm=True,
+            alarm_msg=f"機種設定エラー: type={production_type}",
+            timestamp=datetime.now(),
+        )
 
     # 機種設定を使って計算
     _remain_min = calculate_remain_minutes(plan, actual, production_type)
