@@ -219,31 +219,42 @@ st_autorefresh(interval=REFRESH_INTERVAL * 1000, key="datarefresh")
 # --------------------------
 data = get_production_data()
 
-# ===== ヘッダ =====
-render_header(data)
-st.markdown("---")
+# --------------------------
+#  レンダリング（エラー時も更新継続）
+# --------------------------
+try:
+    # ===== ヘッダ =====
+    render_header(data)
+    st.markdown("---")
 
-# 進捗率計算
-progress = min(1.0, data.actual / data.plan) if data.plan else 0
+    # 進捗率計算
+    progress = min(1.0, data.actual / data.plan) if data.plan else 0
 
-# ===== メイン: ゲージ =====
-gauge_fig = get_gauge_figure(progress, theme=THEME)
-st.plotly_chart(gauge_fig, width="stretch")
+    # ===== メイン: ゲージ =====
+    gauge_fig = get_gauge_figure(progress, theme=THEME)
+    st.plotly_chart(gauge_fig, width="stretch")
 
-# ===== 下部: 生産情報 =====
-col_left, col_right = st.columns(2)
+    # ===== 下部: 生産情報 =====
+    col_left, col_right = st.columns(2)
 
-# ---- 左：生産数量 ----
-with col_left:
-    render_production_metrics(data, progress)
+    # ---- 左：生産数量 ----
+    with col_left:
+        render_production_metrics(data, progress)
 
-# ---- 右：残り時間 ＋ ステータス ----
-with col_right:
-    render_time_and_status(data, progress)
+    # ---- 右：残り時間 ＋ ステータス ----
+    with col_right:
+        render_time_and_status(data, progress)
 
-# ===== 下段：異常バー =====
-st.markdown("---")
-render_alarm_bar(data)
+    # ===== 下段：異常バー =====
+    st.markdown("---")
+    render_alarm_bar(data)
+
+except Exception as e:
+    # レンダリングエラー時も画面を維持し、更新を継続
+    logger.error(f"Rendering error: {e}")
+    st.error(f"表示エラー: {e}")
+    st.markdown("---")
+    st.warning("データ取得は継続中です。最新情報の取得をお待ちください。")
 
 st.markdown(
     f"<div class='footer'>更新間隔：{REFRESH_INTERVAL}秒 / Powered by Streamlit</div>",
