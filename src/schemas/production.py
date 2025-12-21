@@ -89,7 +89,7 @@ class ProductionData(BaseModel):
             in_operating=False,
             remain_min=0,
             remain_pallet=0,
-            fully=0,
+            fully=1,  # ゼロ除算防止のため1に設定
             alarm=True,
             alarm_msg="データ取得エラー",
             timestamp=datetime.now(),
