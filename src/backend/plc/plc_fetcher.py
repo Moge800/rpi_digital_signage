@@ -5,6 +5,7 @@ PLCから各種データ(生産数、アラーム、タイムスタンプ等)を
 """
 
 import math
+import socket
 from datetime import datetime
 from backend.logging import backend_logger as logger
 from backend.plc.plc_client import PLCClient
@@ -40,7 +41,7 @@ def _fetch_word(
         else:
             data = client.read_words(device_address, size=1)
         return data[0]
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
+    except (ConnectionError, OSError, ValueError, IndexError, socket.timeout) as e:
         logger.warning(
             f"Failed to get {field_name} from PLC: {e}, using default {default}"
         )
@@ -67,7 +68,7 @@ def _fetch_bit(
     try:
         data = client.read_bits(device_address, size=1)
         return bool(data[0])
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
+    except (ConnectionError, OSError, ValueError, IndexError, socket.timeout) as e:
         logger.warning(
             f"Failed to get {field_name} from PLC: {e}, using default {default}"
         )
@@ -115,7 +116,7 @@ def fetch_production_timestamp(client: PLCClient, head_device: str) -> datetime:
 
         return datetime(Y, M, D, h, m, s)
 
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
+    except (ConnectionError, OSError, ValueError, IndexError, socket.timeout) as e:
         # PLC接続エラーまたはデータ変換エラー時は現在時刻を返す
         logger.warning(f"Failed to get timestamp from PLC: {e}, using system time")
         return datetime.now()
@@ -273,7 +274,7 @@ def fetch_alarm_msg(client: PLCClient, device_address: str) -> str:
         alarm_msg = "".join(chr((word >> 8) & 0xFF) + chr(word & 0xFF) for word in data)
         alarm_msg = alarm_msg.rstrip("\x00")  # 末尾のNULL文字を削除
         return alarm_msg
-    except (ConnectionError, OSError, ValueError, IndexError) as e:
+    except (ConnectionError, OSError, ValueError, IndexError, socket.timeout) as e:
         logger.warning(
             f"Failed to get alarm message from PLC: {e}, using default empty string"
         )

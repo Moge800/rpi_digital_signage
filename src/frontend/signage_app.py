@@ -1,4 +1,5 @@
 import sys
+import socket
 from pathlib import Path
 import random
 from datetime import datetime
@@ -90,7 +91,7 @@ if USE_PLC:
             else:
                 logger.warning("Failed to sync system clock with PLC")
                 st.session_state["system_clock_synced"] = True
-        except (ConnectionError, OSError, TimeoutError) as e:
+        except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
             logger.error(f"PLC time sync error: {e}")
             st.error(f"PLC時刻同期に失敗しました: {e}")
             st.session_state["system_clock_synced"] = True
@@ -124,7 +125,7 @@ def get_production_data() -> ProductionData:
         # PLC実データ取得
         try:
             return fetch_production_data(client)
-        except (ConnectionError, OSError, TimeoutError) as e:
+        except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
             logger.error(f"PLC communication error: {e}")
             error_data = ProductionData.error()
             error_data.alarm_msg = f"PLC通信エラー: {str(e)[:50]}"

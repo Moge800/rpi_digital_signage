@@ -43,7 +43,7 @@ def auto_reconnect(func: Func) -> Func:
     def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         try:
             return func(self, *args, **kwargs)
-        except (ConnectionError, OSError, TimeoutError) as e:
+        except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
             logger.error(f"Error in {func_name(func)}: {e}")
             if getattr(self.settings, "AUTO_RECONNECT", False):
                 logger.info("Attempting to reconnect...")
@@ -289,7 +289,7 @@ class PLCClient(BasePLCClient):
                 # PLCの起動を待つため、通常より長く待機（15秒）
                 time.sleep(15)
                 continue
-            except (ConnectionError, OSError, TimeoutError) as e:
+            except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
                 logger.warning(f"Reconnect attempt {i+1} failed: {e}")
                 self.connected = False
                 time.sleep(self.settings.RECONNECT_DELAY)
