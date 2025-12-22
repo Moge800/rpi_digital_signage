@@ -94,9 +94,12 @@ async def shutdown_server() -> ShutdownResponse:
     import asyncio
 
     async def delayed_shutdown() -> None:
-        await asyncio.sleep(0.5)  # レスポンス送信を待つ
-        logger.info("Sending SIGTERM to self...")
-        os.kill(os.getpid(), signal.SIGTERM)
+        try:
+            await asyncio.sleep(0.5)  # レスポンス送信を待つ
+            logger.info("Sending SIGTERM to self...")
+            os.kill(os.getpid(), signal.SIGTERM)
+        except Exception as e:
+            logger.error(f"Error during delayed shutdown: {e}")
 
     asyncio.create_task(delayed_shutdown())
 

@@ -75,7 +75,9 @@ class PLCService:
 
     def shutdown(self) -> None:
         """PLC接続を安全に切断"""
-        with self._access_lock:
+        # タイムアウト付きでロック取得を試みる (デッドロック防止)
+        acquired = self._access_lock.acquire(timeout=5.0)
+        try:
             if self._client is not None:
                 try:
                     if hasattr(self._client, "connected") and self._client.connected:
@@ -85,6 +87,13 @@ class PLCService:
                     logger.warning(f"Error during PLC disconnect: {e}")
                 finally:
                     self._client = None
+        finally:
+            if acquired:
+                self._access_lock.release()
+            else:
+                logger.warning("Could not acquire lock for shutdown (timeout)")
+                # ロック取得できなくてもクライアント参照はクリア
+                self._client = None
 
     def get_production_data(self) -> Any:
         """生産データを取得

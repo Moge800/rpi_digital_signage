@@ -177,5 +177,25 @@ echo ""
 echo -e "${YELLOW}Ctrl+C で終了${NC}"
 echo ""
 
-# プロセスを監視
-wait $API_PID $STREAMLIT_PID
+# プロセスを監視 (どちらかが終了したらcleanupを実行)
+while true; do
+    # APIプロセスチェック
+    if [ -f "$API_PID_FILE" ]; then
+        API_PID=$(cat "$API_PID_FILE")
+        if ! kill -0 "$API_PID" 2>/dev/null; then
+            echo -e "${RED}APIサーバーが停止しました${NC}"
+            cleanup
+        fi
+    fi
+    
+    # Streamlitプロセスチェック
+    if [ -f "$STREAMLIT_PID_FILE" ]; then
+        STREAMLIT_PID=$(cat "$STREAMLIT_PID_FILE")
+        if ! kill -0 "$STREAMLIT_PID" 2>/dev/null; then
+            echo -e "${RED}Streamlitが停止しました${NC}"
+            cleanup
+        fi
+    fi
+    
+    sleep 2
+done

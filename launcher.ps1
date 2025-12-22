@@ -38,20 +38,26 @@ function Cleanup {
     if ($script:streamlitProcess -and !$script:streamlitProcess.HasExited) {
         Write-Host "Streamlitを停止中..." -ForegroundColor Yellow
         $script:streamlitProcess.Kill()
-        $script:streamlitProcess.WaitForExit(5000)
+        $exited = $script:streamlitProcess.WaitForExit(5000)
+        if (-not $exited) {
+            Write-Host "警告: Streamlitの停止がタイムアウトしました" -ForegroundColor Yellow
+        }
     }
     
     # API停止（シャットダウンエンドポイント経由）
     if ($script:apiProcess -and !$script:apiProcess.HasExited) {
         Write-Host "APIサーバーを停止中..." -ForegroundColor Yellow
         try {
-            Invoke-RestMethod -Uri "http://${API_HOST}:${API_PORT}/api/shutdown" -Method POST -ErrorAction SilentlyContinue
+            $null = Invoke-RestMethod -Uri "http://${API_HOST}:${API_PORT}/api/shutdown" -Method POST -TimeoutSec 3 -ErrorAction SilentlyContinue
             Start-Sleep -Seconds 1
         } catch {}
         
         if (!$script:apiProcess.HasExited) {
             $script:apiProcess.Kill()
-            $script:apiProcess.WaitForExit(5000)
+            $exited = $script:apiProcess.WaitForExit(5000)
+            if (-not $exited) {
+                Write-Host "警告: APIサーバーの停止がタイムアウトしました" -ForegroundColor Yellow
+            }
         }
     }
     
