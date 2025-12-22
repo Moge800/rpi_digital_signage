@@ -89,9 +89,11 @@ if USE_PLC:
                 st.session_state["system_clock_synced"] = True
             else:
                 logger.warning("Failed to sync system clock with PLC")
+                st.session_state["system_clock_synced"] = True
         except (ConnectionError, OSError, TimeoutError) as e:
             logger.error(f"PLC time sync error: {e}")
             st.error(f"PLC時刻同期に失敗しました: {e}")
+            st.session_state["system_clock_synced"] = True
 
 
 # --------------------------
