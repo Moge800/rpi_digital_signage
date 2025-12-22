@@ -11,7 +11,6 @@ Func: TypeAlias = Callable[..., Any]
 
 # PLC通信タイムアウト設定（秒）
 PLC_SOCKET_TIMEOUT = 5  # ソケット読み書きタイムアウト
-PLC_CONNECT_TIMEOUT = 3  # 接続タイムアウト
 
 
 def func_name(func: Func) -> str:
