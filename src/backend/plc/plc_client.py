@@ -1,4 +1,5 @@
 import time
+import socket
 from functools import wraps
 from pymcprotocol import Type3E
 from .base import BasePLCClient
@@ -7,6 +8,10 @@ from backend.logging import plc_logger as logger
 from typing import Any, Callable, TypeAlias
 
 Func: TypeAlias = Callable[..., Any]
+
+# PLC通信タイムアウト設定（秒）
+PLC_SOCKET_TIMEOUT = 5  # ソケット読み書きタイムアウト
+PLC_CONNECT_TIMEOUT = 3  # 接続タイムアウト
 
 
 def func_name(func: Func) -> str:
@@ -86,6 +91,9 @@ def debug_dummy_read(func: Func) -> Func:
             elif _func_name == "read_bits":
                 size = kwargs.get("size", args[1] if len(args) > 1 else 1)
                 return [0] * size  # ダミーのビットデータ
+            elif _func_name == "read_dwords":
+                size = kwargs.get("size", args[1] if len(args) > 1 else 1)
+                return [0] * size  # ダミーのダブルワードデータ
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -116,6 +124,8 @@ class PLCClient(BasePLCClient):
             settings: PLC接続設定 (IP, ポート等)
         """
         self.plc = Type3E()
+        # ソケットタイムアウトを設定（デフォルト2秒は短すぎる場合がある）
+        self.plc.soc_timeout = PLC_SOCKET_TIMEOUT
         self.settings = settings
         self.connected = False
         self.connect()
@@ -162,6 +172,8 @@ class PLCClient(BasePLCClient):
         for attempt in range(self.settings.RECONNECT_RETRY):
             try:
                 self.plc.connect(str(self.settings.PLC_IP), self.settings.PLC_PORT)
+                # TCPキープアライブを有効化（long-lived connection対策）
+                self._enable_keepalive()
                 logger.info(
                     f"Connected to PLC at {self.settings.PLC_IP}:{self.settings.PLC_PORT}"
                 )
@@ -190,6 +202,35 @@ class PLCClient(BasePLCClient):
         # ループが全て終わった場合（想定外だが安全のため）
         self.connected = False
         return False
+
+    def _enable_keepalive(self) -> None:
+        """TCPキープアライブを有効化する
+
+        長時間接続でのhalf-open状態を検出するため、
+        OSレベルのTCPキープアライブを設定する。
+        """
+        try:
+            sock = self.plc._sock
+            if sock is None:
+                return
+
+            # TCPキープアライブを有効化
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+
+            # Linux固有のキープアライブ設定
+            # TCP_KEEPIDLE: 最初のキープアライブまでのアイドル時間（秒）
+            # TCP_KEEPINTVL: キープアライブの間隔（秒）
+            # TCP_KEEPCNT: 切断判定までのキープアライブ回数
+            if hasattr(socket, "TCP_KEEPIDLE"):
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 60)
+            if hasattr(socket, "TCP_KEEPINTVL"):
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+            if hasattr(socket, "TCP_KEEPCNT"):
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+
+            logger.debug("TCP keepalive enabled")
+        except (OSError, AttributeError) as e:
+            logger.warning(f"Failed to enable TCP keepalive: {e}")
 
     def disconnect(self) -> bool:
         """PLCから切断する
@@ -233,6 +274,7 @@ class PLCClient(BasePLCClient):
                 self.disconnect()
                 # 直接PLC接続を試みる（connect()の内部リトライを避けるため）
                 self.plc.connect(str(self.settings.PLC_IP), self.settings.PLC_PORT)
+                self._enable_keepalive()  # TCPキープアライブを有効化
                 logger.info("Reconnect succeeded.")
                 self.connected = True
                 return True
@@ -256,6 +298,35 @@ class PLCClient(BasePLCClient):
         self.connected = False
         return False
 
+    def ensure_connected(self) -> bool:
+        """PLC接続が有効であることを確認し、必要なら再接続する
+
+        長時間稼働時のコネクション切断対策。読み込み前に呼び出すことで
+        staleなコネクションを検出・復旧する。
+
+        Returns:
+            bool: 接続が有効（または再接続成功）ならTrue
+        """
+        if not self.connected:
+            logger.warning("PLC not connected, attempting to reconnect...")
+            return self.reconnect()
+
+        # 接続済みでも実際に通信できるか軽量チェック
+        try:
+            # SD0（CPUモデル名）を読む = 軽量なヘルスチェック
+            # タイムアウトはsoc_timeout（5秒）で発生する
+            self.plc.batchread_wordunits("SD0", 1)
+            return True
+        except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
+            logger.warning(f"PLC connection stale, reconnecting: {e}")
+            self.connected = False
+            return self.reconnect()
+        except Exception as e:
+            # 予期せぬエラーもキャッチしてログ
+            logger.error(f"Unexpected error in health check: {e}")
+            self.connected = False
+            return self.reconnect()
+
     def _ensure_connection(self) -> None:
         """PLC接続が確立されていることを保証するユーティリティメソッド
 
@@ -265,6 +336,7 @@ class PLCClient(BasePLCClient):
         if not self.connected:
             raise ConnectionError("Not connected to PLC.")
 
+    @debug_dummy_read
     @auto_reconnect
     def read_words(self, device_name: str, size: int = 1) -> list[int]:
         """PLCからワードデバイスを読み取る
@@ -288,6 +360,7 @@ class PLCClient(BasePLCClient):
         logger.debug(f"Read words {device_name}: {data}")
         return data
 
+    @debug_dummy_read
     @auto_reconnect
     def read_bits(self, device_name: str, size: int = 1) -> list[int]:
         """PLCからビットデバイスを読み取る
@@ -311,6 +384,7 @@ class PLCClient(BasePLCClient):
         logger.debug(f"Read bits {device_name}: {data}")
         return data
 
+    @debug_dummy_read
     @auto_reconnect
     def read_dwords(self, device_name: str, size: int = 1) -> list[int]:
         """PLCからダブルワードデバイスを読み取る
