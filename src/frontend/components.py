@@ -42,7 +42,9 @@ def get_status_info(
         return ("status-unknown", "？ 不明")
 
 
-def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
+def get_gauge_figure(
+    progress: float, theme: str = "dark", alarm: bool = False
+) -> go.Figure:
     """生産進捗率のゲージ図を生成
 
     Plotlyを使用して、進捗率を視覚的に表示するゲージチャートを作成する。
@@ -51,6 +53,7 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
     Args:
         progress: 進捗率 (0.0-1.0)
         theme: "dark" または "light"
+        alarm: 異常フラグ (Trueの場合、ゲージバーが赤くなる)
 
     Returns:
         go.Figure: Plotlyゲージ図オブジェクト
@@ -61,6 +64,9 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
     """
     colors = get_theme_colors(theme)
 
+    # 異常時はstatus_alarm_bg、通常時は緑
+    bar_color = colors["status_alarm_bg"] if alarm else colors["gauge_bar"]
+
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number",
@@ -69,7 +75,7 @@ def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
             # title={"text": "生産進捗率"},
             gauge={
                 "axis": {"range": [0, 100]},
-                "bar": {"color": colors["gauge_bar"]},
+                "bar": {"color": bar_color},
                 "steps": [
                     {"range": [0, 80], "color": colors["gauge_step_1"]},
                     {"range": [80, 100], "color": colors["gauge_step_2"]},
@@ -119,7 +125,9 @@ def render_header(data: ProductionData) -> None:
         )
 
 
-def render_production_metrics(data: ProductionData, progress: float) -> None:
+def render_production_metrics(
+    data: ProductionData, progress: float, alarm: bool = False, theme: str = "dark"
+) -> None:
     """生産数量メトリクスをレンダリング
 
     計画数・実績数・進捗バー・残りパレット数を表示する。
@@ -128,11 +136,15 @@ def render_production_metrics(data: ProductionData, progress: float) -> None:
     Args:
         data: 生産データ (plan, actual, remain_pallet, fullyを使用)
         progress: 進捗率 (0.0-1.0)
+        alarm: 異常フラグ (Trueの場合、進捗バーが赤くなる)
+        theme: "dark" または "light"
 
     Note:
         パレット情報 = 残りパレット数 / 必要総パレット数
         必要総パレット数 = plan / fully (1パレットあたりの積載数)
     """
+    colors = get_theme_colors(theme)
+
     st.markdown(
         f"<div class='kpi-value-big' style='text-align: center;'>{data.actual:,d} <span style='font-size: 0.6em; color: #888;'>/ {data.plan:,d}</span></div>",
         unsafe_allow_html=True,
@@ -141,7 +153,18 @@ def render_production_metrics(data: ProductionData, progress: float) -> None:
         "<div class='kpi-label' style='text-align: center; margin-top: -10px;'>投入数 / 生産数量</div>",
         unsafe_allow_html=True,
     )
-    st.progress(progress)
+
+    # 異常時はstatus_alarm_bg、通常時は緑のプログレスバー
+    bar_color = colors["status_alarm_bg"] if alarm else colors["gauge_bar"]
+    percent = min(progress * 100, 100)
+    st.markdown(
+        f"""
+        <div style="background-color: #333; border-radius: 5px; height: 20px; margin: 10px 0;">
+            <div style="background-color: {bar_color}; width: {percent}%; height: 100%; border-radius: 5px; transition: width 0.3s ease;"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # パレット情報（最重要）
     # ゼロ除算防止: fully=0の場合は0を返す

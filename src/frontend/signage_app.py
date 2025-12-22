@@ -182,7 +182,7 @@ try:
     progress = min(1.0, data.actual / data.plan) if data.plan else 0
 
     # ===== メイン: ゲージ =====
-    gauge_fig = get_gauge_figure(progress, theme=THEME)
+    gauge_fig = get_gauge_figure(progress, theme=THEME, alarm=data.alarm)
     st.plotly_chart(gauge_fig, width="stretch")
 
     # ===== 下部: 生産情報 =====
@@ -190,7 +190,7 @@ try:
 
     # ---- 左：生産数量 ----
     with col_left:
-        render_production_metrics(data, progress)
+        render_production_metrics(data, progress, alarm=data.alarm, theme=THEME)
 
     # ---- 右：残り時間 ＋ ステータス ----
     with col_right:

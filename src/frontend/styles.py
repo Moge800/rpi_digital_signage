@@ -34,7 +34,7 @@ def get_theme_colors(theme: str = "dark") -> dict[str, str]:
             "status_alarm_bg": "#ffcdd2",
             "status_alarm_border": "#f44336",
             "alarm_bar_ok_bg": "#81c784",
-            "alarm_bar_error_bg": "linear-gradient(90deg, #ff5252, #ff9800)",
+            "alarm_bar_error_bg": "#ff0000",
             "hr_color": "#e0e0e0",
             "progress_color": "#31c77f",
         }
@@ -58,7 +58,7 @@ def get_theme_colors(theme: str = "dark") -> dict[str, str]:
             "status_alarm_bg": "#7a0000",
             "status_alarm_border": "#ff3333",
             "alarm_bar_ok_bg": "#145c32",
-            "alarm_bar_error_bg": "linear-gradient(90deg, #ff0000, #ff8800)",
+            "alarm_bar_error_bg": "#ff0000",
             "hr_color": "#333333",
             "progress_color": "#31c77f",
         }
