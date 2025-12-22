@@ -2,8 +2,14 @@
 #    uv pip compile pyproject.toml --all-extras --group dev -o dev-requirements.txt
 altair==5.5.0
     # via streamlit
+annotated-doc==0.0.4
+    # via fastapi
 annotated-types==0.7.0
     # via pydantic
+anyio==4.12.0
+    # via
+    #   httpx
+    #   starlette
 attrs==25.4.0
     # via
     #   jsonschema
@@ -15,21 +21,42 @@ blinker==1.9.0
 cachetools==6.2.2
     # via streamlit
 certifi==2025.11.12
-    # via requests
+    # via
+    #   httpcore
+    #   httpx
+    #   requests
 charset-normalizer==3.4.4
     # via requests
 click==8.3.1
     # via
     #   black
     #   streamlit
+    #   uvicorn
+colorama==0.4.6
+    # via
+    #   click
+    #   pytest
 coverage==7.12.0
     # via pytest-cov
+fastapi==0.127.0
+    # via rpi-digital-signage (pyproject.toml)
 gitdb==4.0.12
     # via gitpython
 gitpython==3.1.45
     # via streamlit
+h11==0.16.0
+    # via
+    #   httpcore
+    #   uvicorn
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via rpi-digital-signage (pyproject.toml)
 idna==3.11
-    # via requests
+    # via
+    #   anyio
+    #   httpx
+    #   requests
 iniconfig==2.3.0
     # via pytest
 jinja2==3.1.6
@@ -87,7 +114,9 @@ protobuf==6.33.1
 pyarrow==21.0.0
     # via streamlit
 pydantic==2.12.5
-    # via pydantic-settings
+    # via
+    #   fastapi
+    #   pydantic-settings
 pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.12.0
@@ -130,6 +159,8 @@ six==1.17.0
     # via python-dateutil
 smmap==5.0.2
     # via gitdb
+starlette==0.50.0
+    # via fastapi
 streamlit==1.51.0
     # via
     #   rpi-digital-signage (pyproject.toml)
@@ -145,10 +176,13 @@ tornado==6.5.2
 typing-extensions==4.15.0
     # via
     #   altair
+    #   anyio
+    #   fastapi
     #   mypy
     #   pydantic
     #   pydantic-core
     #   referencing
+    #   starlette
     #   streamlit
     #   typing-inspection
 typing-inspection==0.4.2
@@ -159,5 +193,7 @@ tzdata==2025.2
     # via pandas
 urllib3==2.5.0
     # via requests
+uvicorn==0.40.0
+    # via rpi-digital-signage (pyproject.toml)
 watchdog==6.0.0
     # via streamlit
