@@ -55,7 +55,9 @@ def fetch_production_from_api() -> ProductionData:
                 timestamp=datetime.fromisoformat(data["timestamp"]),
             )
     except httpx.HTTPStatusError as e:
-        logger.error(f"API returned error: {e.response.status_code} - {e.response.text}")
+        logger.error(
+            f"API returned error: {e.response.status_code} - {e.response.text}"
+        )
         raise
     except httpx.RequestError as e:
         logger.error(f"API connection error: {e}")
