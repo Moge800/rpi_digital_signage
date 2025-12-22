@@ -1,15 +1,23 @@
+"""Streamlit デジタルサイネージ フロントエンド
+
+FastAPI バックエンドからデータを取得し、表示するUIアプリケーション。
+PLC通信はバックエンドに委譲し、フロントエンドは表示に専念。
+
+起動方法:
+    streamlit run src/frontend/signage_app.py
+"""
+
 import sys
-import socket
 import gc
 from pathlib import Path
-import random
-from datetime import datetime
 import tempfile
 
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from dotenv import load_dotenv
+import httpx
 
+# プロジェクトルートをパスに追加
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # .envファイルを読み込む
@@ -23,16 +31,14 @@ from frontend.components import (
     render_time_and_status,
     render_alarm_bar,
 )
+from frontend.api_client import (
+    fetch_production_from_api,
+    check_api_health,
+    request_time_sync,
+)
 from schemas import ProductionData
 from config.settings import Settings
-from backend.system_utils import set_system_clock
-from backend.plc.plc_client import get_plc_client, PLCClient
-from backend.plc.plc_fetcher import (
-    fetch_production_data,
-    fetch_production_timestamp,
-    get_plc_device_dict,
-)
-from backend.config_helpers import get_refresh_interval, get_use_plc
+from backend.config_helpers import get_refresh_interval
 from backend.logging import app_logger as logger
 
 # --------------------------
@@ -40,21 +46,14 @@ from backend.logging import app_logger as logger
 # --------------------------
 settings = Settings()
 REFRESH_INTERVAL = get_refresh_interval()
-USE_PLC = get_use_plc()
 THEME = settings.THEME  # UIテーマ (dark/light)
-
-# ダミーデータ生成用の定数
-SECONDS_PER_PRODUCT = 1.2  # 1個あたりの生産時間(秒) (50個/分 = 1.2秒/個)
-ALARM_THRESHOLD = 8000  # アラーム判定の閾値
-ALARM_PROBABILITY = 0.5  # アラーム発生確率
-MAX_PRODUCTION_TYPE = 2  # ダミーモードで使用する最大機種番号
 
 # メモリクリーンアップ間隔 (リフレッシュ回数)
 GC_INTERVAL = 100  # 100回リフレッシュごとにGC実行 (約5分@3秒間隔)
 
 # 初期化フラグファイル（セッションリセット対策）
 # /tmp は再起動でクリアされるので、起動ごとに1回だけ初期化される
-_INIT_FLAG_FILE = Path(tempfile.gettempdir()) / "signage_initialized.flag"
+_INIT_FLAG_FILE = Path(tempfile.gettempdir()) / "signage_frontend_initialized.flag"
 
 
 def _is_already_initialized() -> bool:
@@ -66,73 +65,39 @@ def _mark_initialized() -> None:
     """初期化完了をファイルに記録"""
     try:
         _INIT_FLAG_FILE.touch()
-        logger.debug(f"Initialization flag created: {_INIT_FLAG_FILE}")
+        logger.debug(f"Frontend initialization flag created: {_INIT_FLAG_FILE}")
     except OSError as e:
         logger.warning(f"Failed to create init flag: {e}")
 
 
 # --------------------------
-#  PLC接続初期化
+#  初期化処理（起動後1回のみ）
 # --------------------------
-if USE_PLC:
+if not _is_already_initialized():
+    logger.info("Frontend initializing...")
 
-    @st.cache_resource
-    def cache_plc_client() -> PLCClient:
-        """PLCクライアントをキャッシュする (Streamlit再実行対策)
+    # APIサーバーのヘルスチェック
+    if check_api_health():
+        logger.info("API server is healthy")
 
-        Returns:
-            PLCClient: キャッシュされたPLCクライアントインスタンス
-        """
-        return get_plc_client()
-
-    client = cache_plc_client()
-
-    # セッション終了時のクリーンアップ登録（初回のみ、セッションベースでOK）
-    if "cleanup_registered" not in st.session_state:
-        import atexit
-
-        def cleanup_plc() -> None:
-            """アプリケーション終了時にPLC接続をクリーンアップ"""
-            try:
-                if client and client.connected:
-                    client.disconnect()
-                    logger.info("PLC connection closed on app exit")
-            except Exception as e:
-                logger.warning(f"Error during PLC cleanup: {e}")
-
-        atexit.register(cleanup_plc)
-        st.session_state["cleanup_registered"] = True
-
-    # システム時刻同期（起動後1回のみ実行 - ファイルベースで管理）
-    if not _is_already_initialized():
-        time_device = get_plc_device_dict()["TIME_DEVICE"]
-        if time_device:  # TIME_DEVICE が設定されている場合のみ時刻同期
-            try:
-                plc_time = fetch_production_timestamp(client, time_device)
-                if set_system_clock(plc_time):
-                    logger.info(f"System clock synced with PLC: {plc_time}")
-                else:
-                    logger.warning("Failed to sync system clock with PLC")
-            except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
-                logger.error(f"PLC time sync error: {e}")
-                # エラー表示は初回のみ
-                st.error(f"PLC時刻同期に失敗しました: {e}")
+        # 時刻同期をAPIに依頼
+        sync_result = request_time_sync()
+        if sync_result["success"]:
+            logger.info(f"Time synced via API: {sync_result['synced_time']}")
         else:
-            logger.info("TIME_DEVICE not configured, skipping PLC time sync")
+            logger.warning(f"Time sync via API failed: {sync_result['message']}")
+    else:
+        logger.error("API server is not available!")
+        st.error("⚠️ APIサーバーに接続できません。バックエンドが起動しているか確認してください。")
 
-        # 初期化完了をマーク（ファイル作成）
-        _mark_initialized()
+    _mark_initialized()
 
 
 # --------------------------
 #  データ取得部
 # --------------------------
 def get_production_data() -> ProductionData:
-    """生産データを取得する
-
-    USE_PLC=true時はPLCから実データを取得。
-    USE_PLC=false時はダミーデータを生成。
-    エラー時は画面クラッシュを防ぎ、エラー状態を表示。
+    """APIから生産データを取得する
 
     Returns:
         ProductionData: 生産データ (計画/実績/アラーム等)
@@ -142,95 +107,24 @@ def get_production_data() -> ProductionData:
         この関数はStreamlitの自動リフレッシュサイクルごとに
         呼び出される (REFRESH_INTERVAL秒ごと)。
         全ての例外をキャッチしてホワイトアウトを防止。
-
-    Examples:
-        >>> data = get_production_data()
-        >>> print(data.plan)  # 45000
-        >>> print(data.actual)  # 30000
     """
-    if USE_PLC:
-        # PLC実データ取得
-        try:
-            return fetch_production_data(client)
-        except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
-            logger.error(f"PLC communication error: {e}")
-            error_data = ProductionData.error()
-            error_data.alarm_msg = f"PLC通信エラー: {str(e)[:50]}"
-            return error_data
-        except ValueError as e:
-            logger.error(f"PLC data validation error: {e}")
-            error_data = ProductionData.error()
-            error_data.alarm_msg = f"データ異常検出: {str(e)[:50]}"
-            return error_data
-        except Exception as e:
-            logger.critical(f"Unexpected error in get_production_data: {e}")
-            error_data = ProductionData.error()
-            error_data.alarm_msg = f"システムエラー: {str(e)[:50]}"
-            return error_data
-    else:
-        # ダミーモード
-        return _get_dummy_data()
-
-
-def _get_dummy_data() -> ProductionData:
-    """ダミーデータを生成する (内部使用)
-
-    PLC未接続時やUSE_PLC=false時にランダムな生産データを生成。
-    アラームも確率的に発生させ、実運用に近い動作を再現。
-
-    Returns:
-        ProductionData: ランダムなダミーデータ
-            - plan: 固定値45000
-            - actual: 0-45000のランダム値
-            - production_type: 0-MAX_PRODUCTION_TYPEのランダム機種
-            - alarm: 実績>8000かつ50%の確率で発生
-
-    Note:
-        開発環境・デモ環境でのテスト用。
-        本番環境ではUSE_PLC=trueにすること。
-    """
-    from backend.calculators import calculate_remain_pallet
-    from backend.config_helpers import get_config_data
-
-    line_name = settings.LINE_NAME
-    production_type = random.randint(0, MAX_PRODUCTION_TYPE)
-
     try:
-        config = get_config_data(production_type)
-    except ValueError as e:
-        # 機種設定が見つからない場合はエラーデータを返す (0/0表示)
-        logger.warning(f"Dummy mode config error: {e}")
+        return fetch_production_from_api()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"API error: {e}")
         error_data = ProductionData.error()
-        error_data.line_name = line_name
-        error_data.alarm_msg = f"機種設定エラー: type={production_type}"
+        error_data.alarm_msg = f"APIエラー: {e.response.status_code}"
         return error_data
-
-    production_name = config.name
-    fully = config.fully
-    plan = 45000
-    actual = random.randint(0, plan)
-    remain_seconds = max(0, (plan - actual) * SECONDS_PER_PRODUCT)
-    remain_min = int(remain_seconds / 60.0)
-    alarm_flag = actual > ALARM_THRESHOLD and random.random() < ALARM_PROBABILITY
-    alarm_msg = "装置異常発生中" if alarm_flag else ""
-    remain_pallet = calculate_remain_pallet(
-        plan, actual, production_type=production_type, decimals=1
-    )
-
-    return ProductionData(
-        line_name=line_name,
-        production_type=production_type,
-        production_name=production_name,
-        plan=plan,
-        actual=actual,
-        in_operating=True,
-        remain_min=remain_min,
-        remain_pallet=remain_pallet,
-        fully=fully,
-        alarm=alarm_flag,
-        alarm_msg=alarm_msg,
-        timestamp=datetime.now(),
-    )
+    except httpx.RequestError as e:
+        logger.error(f"API connection error: {e}")
+        error_data = ProductionData.error()
+        error_data.alarm_msg = "APIサーバー接続エラー"
+        return error_data
+    except Exception as e:
+        logger.critical(f"Unexpected error in get_production_data: {e}")
+        error_data = ProductionData.error()
+        error_data.alarm_msg = f"システムエラー: {str(e)[:50]}"
+        return error_data
 
 
 # --------------------------
@@ -312,6 +206,6 @@ except Exception as e:
     st.warning("データ取得は継続中です。最新情報の取得をお待ちください。")
 
 st.markdown(
-    f"<div class='footer'>更新間隔：{REFRESH_INTERVAL}秒 / Powered by Streamlit</div>",
+    f"<div class='footer'>更新間隔：{REFRESH_INTERVAL}秒 / Powered by Streamlit + FastAPI</div>",
     unsafe_allow_html=True,
 )

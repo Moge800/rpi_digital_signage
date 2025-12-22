@@ -52,6 +52,8 @@ class Settings(BaseSettings):
         LOG_LEVEL: ログレベル (LogLevel Enum)
         THEME: UIテーマ (Theme Enum: DARK/LIGHT)
         KIOSK_MODE: Kioskモード (True: フルスクリーン自動起動, False: 通常モード)
+        API_HOST: APIサーバーホスト (デフォルト: 127.0.0.1)
+        API_PORT: APIサーバーポート (デフォルト: 8000)
     """
 
     PLC_IP: IPvAnyAddress
@@ -67,6 +69,8 @@ class Settings(BaseSettings):
     LOG_LEVEL: LogLevel = LogLevel.INFO
     THEME: Theme = Theme.DARK
     KIOSK_MODE: bool = False
+    API_HOST: str = "127.0.0.1"
+    API_PORT: int = Field(default=8000, gt=0, le=65535)
 
     model_config = SettingsConfigDict(
         env_file=".env",
