@@ -88,13 +88,14 @@ def fetch_production_timestamp(client: PLCClient, head_device: str) -> datetime:
 
     Args:
         client: PLCクライアント
-        head_device: 日時格納デバイス
+        head_device: 日時格納デバイス (空文字の場合はシステム時刻を返す)
 
     Returns:
-        datetime: PLCから取得した日時
+        datetime: PLCから取得した日時、またはシステム時刻
     """
     if head_device == "":
-        raise ValueError("head_device cannot be an empty string")
+        # デバイス未設定の場合はシステム時刻を使用（ログ出力なし）
+        return datetime.now()
 
     try:
         # SD210から3ワード読み取り

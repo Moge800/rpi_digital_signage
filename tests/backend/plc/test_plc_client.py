@@ -55,12 +55,17 @@ class TestFetchProductionTimestamp:
 
         assert before <= result <= after
 
-    def test_fetch_timestamp_empty_device_raises_error(self):
-        """head_deviceが空文字列の場合にValueErrorが発生するか"""
+    def test_fetch_timestamp_empty_device_returns_system_time(self):
+        """head_deviceが空文字列の場合にシステム時刻を返すか"""
         mock_client = MagicMock(spec=PLCClient)
 
-        with pytest.raises(ValueError, match="head_device cannot be an empty string"):
-            fetch_production_timestamp(mock_client, head_device="")
+        before = datetime.now()
+        result = fetch_production_timestamp(mock_client, head_device="")
+        after = datetime.now()
+
+        # システム時刻が返される（PLC通信は行われない）
+        assert before <= result <= after
+        mock_client.read_words.assert_not_called()
 
 
 class TestPLCClientMocking:

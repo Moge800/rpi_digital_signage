@@ -105,18 +105,20 @@ if USE_PLC:
 
     # システム時刻同期（起動後1回のみ実行 - ファイルベースで管理）
     if not _is_already_initialized():
-        try:
-            plc_time = fetch_production_timestamp(
-                client, get_plc_device_dict()["TIME_DEVICE"]
-            )
-            if set_system_clock(plc_time):
-                logger.info(f"System clock synced with PLC: {plc_time}")
-            else:
-                logger.warning("Failed to sync system clock with PLC")
-        except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
-            logger.error(f"PLC time sync error: {e}")
-            # エラー表示は初回のみ
-            st.error(f"PLC時刻同期に失敗しました: {e}")
+        time_device = get_plc_device_dict()["TIME_DEVICE"]
+        if time_device:  # TIME_DEVICE が設定されている場合のみ時刻同期
+            try:
+                plc_time = fetch_production_timestamp(client, time_device)
+                if set_system_clock(plc_time):
+                    logger.info(f"System clock synced with PLC: {plc_time}")
+                else:
+                    logger.warning("Failed to sync system clock with PLC")
+            except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
+                logger.error(f"PLC time sync error: {e}")
+                # エラー表示は初回のみ
+                st.error(f"PLC時刻同期に失敗しました: {e}")
+        else:
+            logger.info("TIME_DEVICE not configured, skipping PLC time sync")
 
         # 初期化完了をマーク（ファイル作成）
         _mark_initialized()
