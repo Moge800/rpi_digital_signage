@@ -1,5 +1,6 @@
 import sys
 import socket
+import gc
 from pathlib import Path
 import random
 from datetime import datetime
@@ -46,6 +47,9 @@ SECONDS_PER_PRODUCT = 1.2  # 1個あたりの生産時間(秒) (50個/分 = 1.2�
 ALARM_THRESHOLD = 8000  # アラーム判定の閾値
 ALARM_PROBABILITY = 0.5  # アラーム発生確率
 MAX_PRODUCTION_TYPE = 2  # ダミーモードで使用する最大機種番号
+
+# メモリクリーンアップ間隔 (リフレッシュ回数)
+GC_INTERVAL = 100  # 100回リフレッシュごとにGC実行 (約5分@3秒間隔)
 
 # --------------------------
 #  PLC接続初期化
@@ -226,6 +230,21 @@ st.markdown(
 #  自動更新
 # --------------------------
 st_autorefresh(interval=REFRESH_INTERVAL * 1000, key="datarefresh")
+
+# --------------------------
+#  定期メモリクリーンアップ
+# --------------------------
+# リフレッシュカウンタを初期化
+if "refresh_count" not in st.session_state:
+    st.session_state["refresh_count"] = 0
+
+st.session_state["refresh_count"] += 1
+
+# 一定間隔でガベージコレクション実行
+if st.session_state["refresh_count"] >= GC_INTERVAL:
+    collected = gc.collect()
+    logger.debug(f"GC collected {collected} objects")
+    st.session_state["refresh_count"] = 0
 
 # --------------------------
 #  データ取得
