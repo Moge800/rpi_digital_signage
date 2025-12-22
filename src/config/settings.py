@@ -79,6 +79,18 @@ class Settings(BaseSettings):
     )
 
     def __init__(self: Any, **kwargs: Any) -> None:
+        # 環境変数プレセット: DEBUG_LOG が真なら LOG_LEVEL を DEBUG にする
+        # ユーザーが明示的に LOG_LEVEL を設定している場合は上書きしない
+        if "LOG_LEVEL" not in kwargs and os.getenv("LOG_LEVEL") is None:
+            debug_env = os.getenv("DEBUG_LOG")
+            if isinstance(debug_env, str) and debug_env.lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            ):
+                kwargs.setdefault("LOG_LEVEL", LogLevel.DEBUG)
+
         # .envファイルの存在チェック
         if not os.path.exists(".env") and not kwargs:
             raise FileNotFoundError(
@@ -87,6 +99,7 @@ class Settings(BaseSettings):
                 "  cp .env.example .env  (Linux/Mac)\n"
                 "  Copy-Item .env.example .env  (Windows)\n"
             )
+
         super().__init__(**kwargs)
 
 
