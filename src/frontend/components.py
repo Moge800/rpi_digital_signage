@@ -36,8 +36,10 @@ def get_status_info(
         return ("status-ok", "✅ 目標進捗")
     elif progress >= 0.8:
         return ("status-warn", "▲ 要注意")
-    else:
+    elif in_operating:
         return ("status-ok", "● 稼働中")
+    else:
+        return ("status-unknown", "？ 不明")
 
 
 def get_gauge_figure(progress: float, theme: str = "dark") -> go.Figure:
@@ -211,7 +213,7 @@ def render_alarm_bar(data: ProductionData) -> None:
             )
         else:
             st.markdown(
-                "<div class='alarm-bar' style='background:#7f1d1d;'>【異常】異常名システム未実装！</div>",
+                "<div class='alarm-bar' style='background:#7f1d1d;'>異常発生中、装置を確認してください。</div>",
                 unsafe_allow_html=True,
             )
     else:

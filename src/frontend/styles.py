@@ -166,6 +166,15 @@ def get_page_styles(theme: str = "dark") -> str:
         color: {colors["text_color"]};
         font-weight: 600;
     }}
+    .status-unknown {{
+        font-size: 1.6rem;
+        background: #555555;
+        padding: 0.6rem;
+        border-radius: 0.5rem;
+        border: 1px solid #777777;
+        color: {colors["text_color"]};
+        font-weight: 600;
+    }}
     .alarm-bar {{
         background: {colors["alarm_bar_error_bg"]};
         color: white;
