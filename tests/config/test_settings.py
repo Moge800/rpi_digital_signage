@@ -71,7 +71,7 @@ class TestPLCDeviceList:
         """デフォルト値が正しく設定されるか"""
         device_list = PLCDeviceList()
 
-        assert device_list.TIME_DEVICE == "D210"
+        assert device_list.TIME_DEVICE == "SD210"
         assert device_list.PRODUCTION_TYPE_DEVICE == "D100"
         assert device_list.PLAN_DEVICE == "D101"
         assert device_list.ACTUAL_DEVICE == "D102"
