@@ -53,7 +53,7 @@ def calculate_remain_minutes(
     """
     config = get_config_data(production_type)
 
-    remain = plan - actual
+    remain = max(0, plan - actual)  # 計画超過時は0にクランプ
     remain_seconds = remain * config.seconds_per_product  # 残り個数 × 1個あたりの秒数
     remain_minute = remain_seconds / 60.0
 
