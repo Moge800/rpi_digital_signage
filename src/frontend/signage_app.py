@@ -88,7 +88,9 @@ if not _is_already_initialized():
             logger.warning(f"Time sync via API failed: {sync_result['message']}")
     else:
         logger.error("API server is not available!")
-        st.error("⚠️ APIサーバーに接続できません。バックエンドが起動しているか確認してください。")
+        st.error(
+            "⚠️ APIサーバーに接続できません。バックエンドが起動しているか確認してください。"
+        )
 
     _mark_initialized()
 

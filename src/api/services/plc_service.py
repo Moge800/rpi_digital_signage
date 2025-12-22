@@ -7,17 +7,11 @@ PLCClientをラップし、APIサーバー内で一元管理するシングル�
 import random
 import threading
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from backend.logging import api_logger as logger
 from backend.config_helpers import get_use_plc, get_config_data
 from config.settings import Settings
-
-# 循環インポート回避のため、初期化時にインポート
-PLCClient = None
-fetch_production_data = None
-fetch_production_timestamp = None
-get_plc_device_dict = None
 
 
 class PLCService:
@@ -29,6 +23,7 @@ class PLCService:
 
     _instance: "PLCService | None" = None
     _lock = threading.Lock()
+    _initialized: bool = False
 
     def __new__(cls) -> "PLCService":
         if cls._instance is None:
@@ -49,24 +44,26 @@ class PLCService:
         self._last_update: datetime | None = None
         self._access_lock = threading.Lock()
 
+        # 遅延インポート用の関数参照
+        self._fetch_production_data: Callable[..., Any] | None = None
+        self._fetch_production_timestamp: Callable[..., datetime] | None = None
+        self._get_plc_device_dict: Callable[[], dict[str, str]] | None = None
+
         logger.info(f"PLCService initialized (USE_PLC={self._use_plc})")
 
     def initialize(self) -> None:
         """PLC接続を初期化"""
-        global PLCClient, fetch_production_data, fetch_production_timestamp, get_plc_device_dict
-
         # 遅延インポート
-        from backend.plc.plc_client import get_plc_client, PLCClient as _PLCClient
+        from backend.plc.plc_client import get_plc_client
         from backend.plc.plc_fetcher import (
-            fetch_production_data as _fetch_production_data,
-            fetch_production_timestamp as _fetch_production_timestamp,
-            get_plc_device_dict as _get_plc_device_dict,
+            fetch_production_data,
+            fetch_production_timestamp,
+            get_plc_device_dict,
         )
 
-        PLCClient = _PLCClient
-        fetch_production_data = _fetch_production_data
-        fetch_production_timestamp = _fetch_production_timestamp
-        get_plc_device_dict = _get_plc_device_dict
+        self._fetch_production_data = fetch_production_data
+        self._fetch_production_timestamp = fetch_production_timestamp
+        self._get_plc_device_dict = get_plc_device_dict
 
         if self._use_plc:
             try:
@@ -102,7 +99,11 @@ class PLCService:
             self._last_update = datetime.now()
 
             if self._use_plc and self._client is not None:
-                return fetch_production_data(self._client)
+                if self._fetch_production_data is None:
+                    raise RuntimeError(
+                        "PLCService not initialized. Call initialize() first."
+                    )
+                return self._fetch_production_data(self._client)
             else:
                 return self._generate_dummy_data()
 
@@ -116,10 +117,15 @@ class PLCService:
             return None
 
         with self._access_lock:
-            time_device = get_plc_device_dict()["TIME_DEVICE"]
+            if (
+                self._get_plc_device_dict is None
+                or self._fetch_production_timestamp is None
+            ):
+                return None
+            time_device = self._get_plc_device_dict()["TIME_DEVICE"]
             if not time_device:
                 return None
-            return fetch_production_timestamp(self._client, time_device)
+            return self._fetch_production_timestamp(self._client, time_device)
 
     def get_status(self) -> dict[str, Any]:
         """サービス状態を取得
