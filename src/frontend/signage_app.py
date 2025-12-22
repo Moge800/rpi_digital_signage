@@ -4,6 +4,7 @@ import gc
 from pathlib import Path
 import random
 from datetime import datetime
+import tempfile
 
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
@@ -51,6 +52,25 @@ MAX_PRODUCTION_TYPE = 2  # ダミーモードで使用する最大機種番号
 # メモリクリーンアップ間隔 (リフレッシュ回数)
 GC_INTERVAL = 100  # 100回リフレッシュごとにGC実行 (約5分@3秒間隔)
 
+# 初期化フラグファイル（セッションリセット対策）
+# /tmp は再起動でクリアされるので、起動ごとに1回だけ初期化される
+_INIT_FLAG_FILE = Path(tempfile.gettempdir()) / "signage_initialized.flag"
+
+
+def _is_already_initialized() -> bool:
+    """初期化済みかどうかをファイルで確認（セッションリセット対策）"""
+    return _INIT_FLAG_FILE.exists()
+
+
+def _mark_initialized() -> None:
+    """初期化完了をファイルに記録"""
+    try:
+        _INIT_FLAG_FILE.touch()
+        logger.debug(f"Initialization flag created: {_INIT_FLAG_FILE}")
+    except OSError as e:
+        logger.warning(f"Failed to create init flag: {e}")
+
+
 # --------------------------
 #  PLC接続初期化
 # --------------------------
@@ -67,7 +87,7 @@ if USE_PLC:
 
     client = cache_plc_client()
 
-    # セッション終了時のクリーンアップ登録（初回のみ）
+    # セッション終了時のクリーンアップ登録（初回のみ、セッションベースでOK）
     if "cleanup_registered" not in st.session_state:
         import atexit
 
@@ -83,22 +103,23 @@ if USE_PLC:
         atexit.register(cleanup_plc)
         st.session_state["cleanup_registered"] = True
 
-    # システム時刻同期（初回のみ実行）
-    if "system_clock_synced" not in st.session_state:
+    # システム時刻同期（起動後1回のみ実行 - ファイルベースで管理）
+    if not _is_already_initialized():
         try:
             plc_time = fetch_production_timestamp(
                 client, get_plc_device_dict()["TIME_DEVICE"]
             )
             if set_system_clock(plc_time):
                 logger.info(f"System clock synced with PLC: {plc_time}")
-                st.session_state["system_clock_synced"] = True
             else:
                 logger.warning("Failed to sync system clock with PLC")
-                st.session_state["system_clock_synced"] = True
         except (ConnectionError, OSError, TimeoutError, socket.timeout) as e:
             logger.error(f"PLC time sync error: {e}")
+            # エラー表示は初回のみ
             st.error(f"PLC時刻同期に失敗しました: {e}")
-            st.session_state["system_clock_synced"] = True
+
+        # 初期化完了をマーク（ファイル作成）
+        _mark_initialized()
 
 
 # --------------------------
