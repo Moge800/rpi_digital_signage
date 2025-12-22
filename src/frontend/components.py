@@ -10,7 +10,9 @@ from schemas import ProductionData
 from frontend.styles import get_theme_colors
 
 
-def get_status_info(alarm: bool, progress: float) -> tuple[str, str]:
+def get_status_info(
+    alarm: bool, progress: float, in_operating: bool
+) -> tuple[str, str]:
     """生産状況からステータス情報を取得
 
     Args:
@@ -28,6 +30,8 @@ def get_status_info(alarm: bool, progress: float) -> tuple[str, str]:
     """
     if alarm:
         return ("status-alarm", "⚠ 異常発生")
+    elif not in_operating:
+        return ("status-warn", "● 停止中")
     elif progress >= 1.0:
         return ("status-ok", "✅ 目標進捗")
     elif progress >= 0.8:
@@ -178,7 +182,7 @@ def render_time_and_status(data: ProductionData, progress: float) -> None:
         unsafe_allow_html=True,
     )
 
-    status_class, status_text = get_status_info(data.alarm, progress)
+    status_class, status_text = get_status_info(data.alarm, progress, data.in_operating)
     st.markdown(
         f"<div class='{status_class}' style='text-align: center; margin-top: 1rem;'>{status_text}</div>",
         unsafe_allow_html=True,
@@ -200,10 +204,16 @@ def render_alarm_bar(data: ProductionData) -> None:
         CSSはget_page_styles()で定義されたalarm-barクラスを使用。
     """
     if data.alarm:
-        st.markdown(
-            f"<div class='alarm-bar'>【異常】{data.alarm_msg}</div>",
-            unsafe_allow_html=True,
-        )
+        if False:
+            st.markdown(
+                f"<div class='alarm-bar'>【異常】{data.alarm_msg}</div>",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                "<div class='alarm-bar' style='background:#7f1d1d;'>【異常】異常名システム未実装！</div>",
+                unsafe_allow_html=True,
+            )
     else:
         st.markdown(
             "<div class='alarm-bar' style='background:#145c32;'>現在、異常はありません。</div>",
