@@ -6,7 +6,6 @@ PLCから各種データ(生産数、アラーム、タイムスタンプ等)を
 
 import math
 from datetime import datetime
-
 from backend.logging import backend_logger as logger
 from backend.plc.plc_client import PLCClient
 from config.settings import PLCDeviceList
@@ -137,7 +136,18 @@ def fetch_production_type(client: PLCClient, device_address: str) -> int:
         >>> prod_type = fetch_production_type(client, "D200")
         >>> print(prod_type)  # 1
     """
-    return _fetch_word(client, device_address, "production type", default=0)
+    try:
+        val = _fetch_word(client, device_address, "production type", default=0)
+        if val < 0 or val > 15:
+            logger.warning(
+                f"Production type {val} out of range (0-15), defaulting to 0"
+            )
+            return 0
+    except Exception as e:
+        logger.warning(f"Error fetching production type: {e}, defaulting to 0")
+        return 0
+
+    return val
 
 
 def fetch_plan(client: PLCClient, device_address: str) -> int:
@@ -155,7 +165,15 @@ def fetch_plan(client: PLCClient, device_address: str) -> int:
         >>> plan = fetch_plan(client, "D300")
         >>> print(plan)  # 45000
     """
-    val = _fetch_word(client, device_address, "production plan", default=0, double=True)
+    try:
+        val = int(
+            _fetch_word(
+                client, device_address, "production plan", default=0, double=True
+            )
+        )
+    except Exception as e:
+        logger.warning(f"Error fetching production plan: {e}, defaulting to 0")
+        return 0
 
     return max(0, val)  # 負の値は0に補正
 
@@ -175,9 +193,16 @@ def fetch_actual(client: PLCClient, device_address: str) -> int:
         >>> actual = fetch_actual(client, "D400")
         >>> print(actual)  # 30000
     """
-    val = _fetch_word(
-        client, device_address, "production actual", default=0, double=True
-    )
+    try:
+        val = int(
+            _fetch_word(
+                client, device_address, "production actual", default=0, double=True
+            )
+        )
+    except Exception as e:
+        logger.warning(f"Error fetching production actual: {e}, defaulting to 0")
+        return 0
+
     return max(0, val)  # 負の値は0に補正
 
 
@@ -196,7 +221,14 @@ def fetch_in_operating(client: PLCClient, device_address: str) -> bool:
         >>> is_running = fetch_in_operating(client, "M100")
         >>> print(is_running)  # True
     """
-    return _fetch_bit(client, device_address, "in_operating flag", default=False)
+    try:
+        val = bool(
+            _fetch_bit(client, device_address, "in_operating flag", default=False)
+        )
+    except Exception as e:
+        logger.warning(f"Error fetching in_operating flag: {e}, defaulting to False")
+        return False
+    return val
 
 
 def fetch_alarm_flag(client: PLCClient, device_address: str) -> bool:
@@ -284,6 +316,35 @@ def get_plc_device_dict() -> dict[str, str]:
     }
 
 
+def default_error_data() -> ProductionData:
+    """エラーデフォルトの生産データを返す
+
+    Returns:
+        ProductionData: エラーデフォルトの生産データ
+    """
+    from backend.config_helpers import get_line_name
+
+    try:
+        line_name = get_line_name()
+    except Exception:
+        logger.warning("Failed to get line name, defaulting to UNKNOWN_LINE")
+        line_name = "UNKNOWN_LINE"
+    return ProductionData(
+        line_name=line_name,
+        production_type=0,
+        production_name="UNKNOWN",
+        plan=0,
+        actual=0,
+        in_operating=False,
+        remain_min=0,
+        remain_pallet=0,
+        fully=1,
+        alarm=True,
+        alarm_msg="PLC通信エラー",
+        timestamp=datetime.now(),
+    )
+
+
 def fetch_production_data(client: PLCClient) -> ProductionData:
     """PLCから生産データを一括取得
 
@@ -319,6 +380,11 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     from backend.calculators import calculate_remain_minutes, calculate_remain_pallet
     from backend.config_helpers import get_config_data, get_line_name
 
+    # 長時間稼働時のコネクション切断対策: 読み込み前にヘルスチェック
+    if not client.ensure_connected():
+        logger.error("PLC connection check failed, returning error data")
+        return default_error_data()
+
     device_dict = get_plc_device_dict()
     line_name = get_line_name()
     production_type = fetch_production_type(
@@ -344,21 +410,7 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     except ValueError as e:
         # 機種設定が見つからない場合はデフォルト値を使用
         logger.warning(f"Config not found for production_type {production_type}: {e}")
-        # デフォルトのエラーデータを返す
-        return ProductionData(
-            line_name=line_name,
-            production_type=production_type,
-            production_name="UNKNOWN",
-            plan=plan,
-            actual=actual,
-            in_operating=in_operating,
-            remain_min=0,
-            remain_pallet=0,
-            fully=1,  # ゼロ除算防止
-            alarm=True,
-            alarm_msg=f"機種設定エラー: type={production_type}",
-            timestamp=datetime.now(),
-        )
+        return default_error_data()
 
     # 機種設定を使って計算
     _remain_min = calculate_remain_minutes(plan, actual, production_type)
@@ -367,17 +419,23 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     fully = config.fully
     timestamp = fetch_production_timestamp(client, device_dict["TIME_DEVICE"])
 
-    return ProductionData(
-        line_name=line_name,
-        production_type=production_type,
-        production_name=config.name,
-        plan=plan,
-        actual=actual,
-        in_operating=in_operating,
-        remain_min=remain_min,
-        remain_pallet=remain_pallet,
-        fully=fully,
-        alarm=alarm,
-        alarm_msg=alarm_msg,
-        timestamp=timestamp,
-    )
+    try:
+        fetch_data = ProductionData(
+            line_name=line_name,
+            production_type=production_type,
+            production_name=config.name,
+            plan=plan,
+            actual=actual,
+            in_operating=in_operating,
+            remain_min=remain_min,
+            remain_pallet=remain_pallet,
+            fully=fully,
+            alarm=alarm,
+            alarm_msg=alarm_msg,
+            timestamp=timestamp,
+        )
+    except Exception as e:
+        logger.error(f"Error constructing ProductionData: {e}")
+        return default_error_data()
+
+    return fetch_data
