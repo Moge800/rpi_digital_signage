@@ -19,12 +19,22 @@ if not env_file.exists() and env_example.exists():
     shutil.copy(env_example, env_file)
 
 # テスト用環境変数を設定
+# 実際の.envの値がテストに影響しないよう、全て上書きする
 os.environ["LINE_NAME"] = "dev_line_1"
 os.environ["USE_PLC"] = "false"
 os.environ["DEBUG_DUMMY_READ"] = "true"
 os.environ["PLC_IP"] = "127.0.0.1"
 os.environ["PLC_PORT"] = "5000"
 os.environ["AUTO_RECONNECT"] = "false"
+
+# PLCデバイスアドレス（.env.exampleのデフォルト値と一致させる）
+os.environ["TIME_DEVICE"] = "SD210"
+os.environ["PRODUCTION_TYPE_DEVICE"] = "D100"
+os.environ["PLAN_DEVICE"] = "D101"
+os.environ["ACTUAL_DEVICE"] = "D102"
+os.environ["ALARM_FLAG_DEVICE"] = "D103"
+os.environ["ALARM_MSG_DEVICE"] = "D104"
+os.environ["IN_OPERATING_DEVICE"] = "D105"
 
 
 @pytest.fixture
