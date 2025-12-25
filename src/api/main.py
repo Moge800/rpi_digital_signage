@@ -86,6 +86,64 @@ async def health_check() -> dict[str, str | int]:
     return {"status": "ok", "pid": os.getpid()}
 
 
+@app.get("/ready", tags=["health"])
+async def readiness_check() -> dict[str, str | int | bool]:
+    """レディネスチェック (やや重い)
+
+    スレッドプールが動作しているかなど、実処理能力を確認。
+    /health より重いが、SM400読み取りでPLC通信も確認。
+
+    用途:
+    - イベントループ詰まりの検知
+    - スレッドプール死活確認
+    - PLC通信の死活確認 (SM400常時ON)
+
+    Returns:
+        {"status": "ok", "pid": <PID>, "plc_alive": <bool>, ...}
+    """
+    import os
+    from concurrent.futures import (
+        ThreadPoolExecutor,
+        TimeoutError as FuturesTimeoutError,
+    )
+
+    pid = os.getpid()
+
+    # スレッドプールが動作しているか確認 (簡単なタスクを投げる)
+    def _ping() -> bool:
+        return True
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_ping)
+            result = future.result(timeout=1.0)  # 1秒でタイムアウト
+            thread_pool_ok = result
+    except (FuturesTimeoutError, Exception):
+        thread_pool_ok = False
+
+    # PLCServiceの状態確認 (通信なし)
+    plc_ready = plc_service.is_ready()
+
+    # PLC通信確認 (SM400読み取り)
+    plc_alive = plc_service.ping_plc()
+
+    # 総合判定
+    if thread_pool_ok and plc_ready and plc_alive:
+        status = "ok"
+    elif thread_pool_ok and plc_ready:
+        status = "degraded"  # 状態はOKだがPLC通信不可
+    else:
+        status = "unhealthy"
+
+    return {
+        "status": status,
+        "pid": pid,
+        "thread_pool_ok": thread_pool_ok,
+        "plc_service_ready": plc_ready,
+        "plc_alive": plc_alive,
+    }
+
+
 # シャットダウンシグナルハンドラ (Linux/Raspberry Pi用)
 # Windows環境ではuvicornのデフォルト処理に任せる
 import platform

@@ -164,3 +164,117 @@ class TestPLCServiceDummyData:
             assert data.line_name == "TEST_LINE"
             assert data.plan > 0
             assert isinstance(data.timestamp, datetime)
+
+
+class TestPLCServiceReadiness:
+    """PLCサービスのレディネスチェックテスト"""
+
+    @pytest.fixture
+    def mock_settings(self):
+        """モック設定を作成"""
+        settings = MagicMock()
+        settings.PLC_FETCH_TIMEOUT = 3.0
+        settings.PLC_FETCH_FAILURE_LIMIT = 5
+        settings.LINE_NAME = "TEST_LINE"
+        return settings
+
+    @pytest.fixture
+    def plc_service(self, mock_settings):
+        """PLCServiceのモックインスタンスを作成"""
+        with patch("api.services.plc_service.Settings", return_value=mock_settings):
+            with patch("api.services.plc_service.get_use_plc", return_value=False):
+                from api.services.plc_service import PLCService
+
+                PLCService._instance = None
+                PLCService._initialized = False
+                service = PLCService()
+                return service
+
+    def test_is_ready_when_use_plc_false(self, plc_service):
+        """USE_PLC=falseの場合は常にReady"""
+        assert plc_service.is_ready() is True
+
+    def test_is_ready_when_failures_at_limit(self, plc_service):
+        """連続失敗が閾値に達するとNot Ready"""
+        plc_service._use_plc = True
+        plc_service._client = MagicMock()
+        plc_service._consecutive_failures = 5  # 閾値と同じ
+
+        assert plc_service.is_ready() is False
+
+    def test_is_ready_when_failures_below_limit(self, plc_service):
+        """連続失敗が閾値未満ならReady"""
+        plc_service._use_plc = True
+        plc_service._client = MagicMock()
+        plc_service._consecutive_failures = 2
+
+        assert plc_service.is_ready() is True
+
+    def test_is_ready_when_client_none(self, plc_service):
+        """クライアントがNoneの場合はNot Ready"""
+        plc_service._use_plc = True
+        plc_service._client = None
+
+        assert plc_service.is_ready() is False
+
+
+class TestPLCServicePing:
+    """PLCサービスのping_plcテスト"""
+
+    @pytest.fixture
+    def mock_settings(self):
+        """モック設定を作成"""
+        settings = MagicMock()
+        settings.PLC_FETCH_TIMEOUT = 3.0
+        settings.PLC_FETCH_FAILURE_LIMIT = 5
+        settings.LINE_NAME = "TEST_LINE"
+        return settings
+
+    @pytest.fixture
+    def plc_service(self, mock_settings):
+        """PLCServiceのモックインスタンスを作成"""
+        with patch("api.services.plc_service.Settings", return_value=mock_settings):
+            with patch("api.services.plc_service.get_use_plc", return_value=True):
+                from api.services.plc_service import PLCService
+
+                PLCService._instance = None
+                PLCService._initialized = False
+                service = PLCService()
+                return service
+
+    def test_ping_plc_success(self, plc_service):
+        """SM400=1でpingが成功"""
+        mock_client = MagicMock()
+        mock_client.batchread_bitunits.return_value = [1]
+        plc_service._client = mock_client
+
+        assert plc_service.ping_plc() is True
+        mock_client.batchread_bitunits.assert_called_once_with("SM400", 1)
+
+    def test_ping_plc_returns_zero(self, plc_service):
+        """SM400=0でpingが失敗"""
+        mock_client = MagicMock()
+        mock_client.batchread_bitunits.return_value = [0]
+        plc_service._client = mock_client
+
+        assert plc_service.ping_plc() is False
+
+    def test_ping_plc_exception(self, plc_service):
+        """通信エラーでpingが失敗"""
+        mock_client = MagicMock()
+        mock_client.batchread_bitunits.side_effect = Exception("Connection lost")
+        plc_service._client = mock_client
+
+        assert plc_service.ping_plc() is False
+
+    def test_ping_plc_when_use_plc_false(self, plc_service):
+        """USE_PLC=falseの場合は常にTrue"""
+        plc_service._use_plc = False
+
+        assert plc_service.ping_plc() is True
+
+    def test_ping_plc_when_client_none(self, plc_service):
+        """クライアントがNoneの場合はFalse"""
+        plc_service._client = None
+
+        assert plc_service.ping_plc() is False

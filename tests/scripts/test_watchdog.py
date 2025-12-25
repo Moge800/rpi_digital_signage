@@ -4,7 +4,6 @@ APIWatchdogクラスの主要ロジックをテスト。
 実際のプロセス起動は行わず、モックを使用。
 """
 
-from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 import pytest
 
@@ -144,7 +143,7 @@ class TestAPIWatchdogHealthCheck:
 
         assert watchdog._consecutive_failures == 0
         assert watchdog._restart_count == 0  # 安定動作でリセット
-        assert watchdog._last_success_time is not None
+        assert watchdog._last_success_monotonic is not None
 
     def test_health_check_failure_increments_count(self, watchdog):
         """ヘルスチェック失敗で失敗カウントが増加"""
@@ -183,6 +182,7 @@ class TestAPIWatchdogHealthCheck:
     def test_pid_change_detected(self, watchdog):
         """PID変化が検知される"""
         watchdog._last_api_pid = 12345
+        watchdog._popen_pid = 11111
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -196,7 +196,8 @@ class TestAPIWatchdogHealthCheck:
             assert watchdog._last_api_pid == 67890
             # logger.infoが呼ばれたことを確認（PID変化のログ）
             assert any(
-                "PID changed" in str(call) for call in mock_logger.info.call_args_list
+                "worker PID changed" in str(call)
+                for call in mock_logger.info.call_args_list
             )
 
 
@@ -235,7 +236,9 @@ class TestAPIWatchdogRestart:
 
     def test_restart_blocked_during_startup_grace(self, watchdog):
         """起動猶予期間中は再起動がブロックされる"""
-        watchdog._last_restart_time = datetime.now()  # たった今再起動した
+        import time
+
+        watchdog._last_restart_monotonic = time.monotonic()  # たった今再起動した
         watchdog._consecutive_failures = 5
         initial_restart_count = watchdog._restart_count
 
@@ -250,8 +253,10 @@ class TestAPIWatchdogRestart:
 
     def test_restart_blocked_during_cooldown(self, watchdog):
         """クールダウン中は再起動がブロックされる"""
+        import time
+
         # 猶予期間は過ぎたがクールダウン中
-        watchdog._last_restart_time = datetime.now() - timedelta(seconds=40)  # 40秒前
+        watchdog._last_restart_monotonic = time.monotonic() - 40  # 40秒前
         watchdog._startup_grace = 30.0  # 猶予期間30秒
         watchdog._initial_cooldown = 60.0  # クールダウン60秒
         watchdog._restart_count = 0
@@ -267,8 +272,10 @@ class TestAPIWatchdogRestart:
 
     def test_restart_allowed_after_cooldown(self, watchdog):
         """クールダウン後は再起動が実行される"""
+        import time
+
         # クールダウン経過後
-        watchdog._last_restart_time = datetime.now() - timedelta(seconds=120)  # 2分前
+        watchdog._last_restart_monotonic = time.monotonic() - 120  # 2分前
         watchdog._startup_grace = 30.0
         watchdog._initial_cooldown = 60.0
         watchdog._restart_count = 0
@@ -285,7 +292,7 @@ class TestAPIWatchdogRestart:
 
     def test_first_restart_allowed(self, watchdog):
         """初回再起動は即座に実行可能"""
-        watchdog._last_restart_time = None  # 一度も再起動していない
+        watchdog._last_restart_monotonic = None  # 一度も再起動していない
         watchdog._consecutive_failures = 5
 
         with patch.object(watchdog, "_stop_api_server"):
@@ -295,7 +302,7 @@ class TestAPIWatchdogRestart:
                         watchdog._attempt_restart()
 
                         assert watchdog._restart_count == 1
-                        assert watchdog._last_restart_time is not None
+                        assert watchdog._last_restart_monotonic is not None
 
 
 class TestAPIWatchdogFailureHandling:
@@ -683,10 +690,12 @@ class TestAPIWatchdogEdgeCases:
 
     def test_failure_count_preserved_during_cooldown(self, watchdog):
         """クールダウン中もfailure_countが維持される"""
+        import time
+
         watchdog._consecutive_failures = 5
         watchdog._failure_limit = 3
         # クールダウン中
-        watchdog._last_restart_time = datetime.now() - timedelta(seconds=30)
+        watchdog._last_restart_monotonic = time.monotonic() - 30  # 30秒前
         watchdog._startup_grace = 60.0
 
         with patch.object(watchdog, "_stop_api_server"):

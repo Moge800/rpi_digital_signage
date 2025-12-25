@@ -126,6 +126,61 @@ class PLCService:
                 # ロック取得できなくてもクライアント参照はクリア
                 self._client = None
 
+    def is_ready(self) -> bool:
+        """サービスが処理可能な状態かチェック (通信は行わない)
+
+        Returns:
+            bool: 初期化済みかつ連続失敗が閾値未満ならTrue
+        """
+        # 初期化されていない場合
+        if not self._initialized:
+            return False
+
+        # PLC使用しない場合は常にReady
+        if not self._use_plc:
+            return True
+
+        # クライアントがない場合
+        if self._client is None:
+            return False
+
+        # 連続失敗が多すぎる場合は degraded
+        if self._consecutive_failures >= self._failure_limit:
+            return False
+
+        return True
+
+    def ping_plc(self) -> bool:
+        """PLC通信が生きているか確認 (SM400読み取り)
+
+        SM400は「常時ON」の特殊リレー。
+        1ビット読み取りで通信の死活確認ができる。
+
+        Returns:
+            bool: SM400が読めて値が1ならTrue
+        """
+        # PLC使用しない場合は常にTrue
+        if not self._use_plc:
+            return True
+
+        # クライアントがない場合
+        if self._client is None:
+            return False
+
+        try:
+            # SM400 (常時ON) を1ビット読み取り
+            # batchread_bitunits(headdevice, readsize) -> List[int]
+            result = self._client.batchread_bitunits("SM400", 1)
+            if result and result[0] == 1:
+                logger.debug("PLC ping OK (SM400=1)")
+                return True
+            else:
+                logger.warning(f"PLC ping failed: SM400={result}")
+                return False
+        except Exception as e:
+            logger.warning(f"PLC ping failed: {e}")
+            return False
+
     def _execute_with_timeout(
         self, func: Callable[..., Any], operation_name: str, *args: Any, **kwargs: Any
     ) -> Any:

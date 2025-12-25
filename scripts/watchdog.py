@@ -25,7 +25,6 @@ import signal
 import subprocess
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -78,10 +77,15 @@ class APIWatchdog:
 
         # 状態管理
         self._consecutive_failures = 0
-        self._last_success_time: datetime | None = None  # 最後に成功した時刻
-        self._last_restart_time: datetime | None = None
+        self._last_success_monotonic: float | None = (
+            None  # 最後に成功した時刻 (monotonic)
+        )
+        self._last_restart_monotonic: float | None = (
+            None  # 最後に再起動した時刻 (monotonic)
+        )
         self._restart_count = 0  # 連続再起動回数（成功でリセット）
-        self._last_api_pid: int | None = None  # 前回APIのPID（変化検知用）
+        self._last_api_pid: int | None = None  # /healthから取得したPID（ワーカーPID等）
+        self._popen_pid: int | None = None  # Popenで起動したPID（親プロセス）
         self._api_process: Optional[subprocess.Popen[bytes]] = None
         self._running = True
 
@@ -163,7 +167,7 @@ class APIWatchdog:
             if response.status_code == 200:
                 # 成功: 失敗カウンタと再起動カウンタをリセット
                 self._consecutive_failures = 0
-                self._last_success_time = datetime.now()
+                self._last_success_monotonic = time.monotonic()
                 self._restart_count = 0  # 安定動作中なのでリセット
 
                 # PID変化を検知（再起動やワーカー変更の確認用）
@@ -174,15 +178,16 @@ class APIWatchdog:
                         self._last_api_pid is not None
                         and current_pid != self._last_api_pid
                     ):
-                        # Note: PID変化は再起動以外でも起こりうる
+                        # Note: /health PID は uvicorn ワーカー等のPID
+                        # Popen PID (親プロセス) とは異なる場合がある
                         # (--reload, --workers, gunicorn移行等)
                         logger.info(
-                            f"API PID changed: {self._last_api_pid} -> {current_pid} "
-                            f"(process change detected)"
+                            f"API worker PID changed: {self._last_api_pid} -> {current_pid} "
+                            f"(popen_pid={self._popen_pid}, process change detected)"
                         )
                     self._last_api_pid = current_pid
 
-                logger.debug(f"Health check OK: {data}")
+                logger.debug(f"Health check OK: {data} (popen_pid={self._popen_pid})")
                 return
 
             # 非200レスポンス
@@ -215,15 +220,15 @@ class APIWatchdog:
 
         Note:
             - クールダウン中でも failure_count は維持する（0に戻さない）
-            - クールダウン判定は last_restart_time 基準（前回再起動からの経過）
-            - last_success_time は restart_count リセットのみに使用
+            - クールダウン判定は monotonic ベース（NTP/手動時刻変更に強い）
+            - last_success_monotonic は restart_count リセットのみに使用
         """
-        now = datetime.now()
+        now_monotonic = time.monotonic()
         cooldown = self._get_current_cooldown()
 
         # クールダウンチェック（前回再起動からの経過時間で判定）
-        if self._last_restart_time is not None:
-            elapsed_since_restart = (now - self._last_restart_time).total_seconds()
+        if self._last_restart_monotonic is not None:
+            elapsed_since_restart = now_monotonic - self._last_restart_monotonic
 
             # 起動直後の猶予期間チェック
             if elapsed_since_restart < self._startup_grace:
@@ -237,12 +242,8 @@ class APIWatchdog:
             # クールダウンチェック（前回再起動からの経過時間）
             if elapsed_since_restart < cooldown:
                 remaining = int(cooldown - elapsed_since_restart)
-                from datetime import timedelta
-
-                next_allowed = self._last_restart_time + timedelta(seconds=cooldown)
                 logger.warning(
-                    f"Restart delayed: remaining={remaining}s, "
-                    f"next_allowed={next_allowed.isoformat()} "
+                    f"Restart delayed: remaining={remaining}s "
                     f"(stage={self._restart_count}, failures={self._consecutive_failures})"
                 )
                 # 注意: failure_count は0に戻さない
@@ -252,7 +253,7 @@ class APIWatchdog:
             f"Initiating API server restart... "
             f"(restart_count={self._restart_count}, cooldown={cooldown}s)"
         )
-        self._last_restart_time = now
+        self._last_restart_monotonic = now_monotonic
         self._restart_count += 1
         # 注意: _consecutive_failures は再起動後も維持
         # 起動成功した場合のみ _check_health でリセットされる
@@ -293,7 +294,8 @@ class APIWatchdog:
                 stderr=None,  # 親プロセスに継承
                 start_new_session=True,  # 新しいプロセスグループを作成
             )
-            logger.info(f"API server process started (PID: {self._api_process.pid})")
+            self._popen_pid = self._api_process.pid
+            logger.info(f"API server process started (popen_pid={self._popen_pid})")
 
             # /health が200を返すまで待機
             if not self._wait_for_api_ready():
