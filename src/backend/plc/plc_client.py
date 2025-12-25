@@ -356,6 +356,7 @@ class PLCClient(BasePLCClient):
         """
         self._ensure_connection()
         data = self.plc.batchread_wordunits(device_name, size)
+        data = [word & 0xFFFF for word in data]  # 16ビットにマスク
         logger.debug(f"Read words {device_name}: {data}")
         return data
 
@@ -413,7 +414,7 @@ class PLCClient(BasePLCClient):
             int.from_bytes(
                 # 各ワードを2バイトに分解してリトルエンディアンで結合
                 b"".join(
-                    word.to_bytes(2, byteorder="little")
+                    (word & 0xFFFF).to_bytes(2, byteorder="little", signed=False)
                     for word in data[i * 2 : i * 2 + 2]
                 ),
                 byteorder="little",
