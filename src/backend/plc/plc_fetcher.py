@@ -304,7 +304,7 @@ def get_plc_device_dict() -> dict[str, str]:
 
     Examples:
         >>> devices = get_plc_device_dict()
-        >>> print(devices["TIME_DEVICE"])  # "D210"
+        >>> print(devices["TIME_DEVICE"])  # "SD210"
         >>> print(devices["PLAN_DEVICE"])  # "D300"
     """
     return {

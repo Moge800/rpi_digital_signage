@@ -119,7 +119,7 @@ class PLCDeviceList(BaseSettings):
         IN_OPERATING_DEVICE: 稼働中フラグ格納デバイス
     """
 
-    TIME_DEVICE: str = "D210"
+    TIME_DEVICE: str = "SD210"
     PRODUCTION_TYPE_DEVICE: str = ""
     PLAN_DEVICE: str = ""
     ACTUAL_DEVICE: str = ""
