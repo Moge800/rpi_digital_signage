@@ -3,9 +3,7 @@
 タイムアウト機構、連続失敗処理、フェイルセーフのテスト。
 """
 
-import threading
 import time
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 

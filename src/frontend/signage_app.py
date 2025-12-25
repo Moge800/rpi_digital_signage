@@ -15,7 +15,6 @@ import tempfile
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 from dotenv import load_dotenv
-import httpx
 
 # プロジェクトルートをパスに追加
 sys.path.insert(0, str(Path(__file__).parent.parent))
