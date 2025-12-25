@@ -81,6 +81,7 @@ class Settings(BaseSettings):
 
     # PLC通信タイムアウト設定
     PLC_FETCH_TIMEOUT: float = Field(default=3.0, ge=1.0, le=30.0)
+    PLC_PING_TIMEOUT: float = Field(default=2.0, ge=0.5, le=10.0)  # ping_plc用(短め)
     PLC_FETCH_FAILURE_LIMIT: int = Field(default=5, ge=1, le=20)
 
     # フロントエンドからの再起動許可
@@ -183,6 +184,7 @@ class WatchdogSettings(BaseSettings):
         WATCHDOG_BACKOFF_MAX: バックオフ最大値 (秒)
         WATCHDOG_API_STARTUP_TIMEOUT: API起動待機の最大秒数
         WATCHDOG_API_STARTUP_CHECK_INTERVAL: API起動確認の間隔 (秒)
+        WATCHDOG_READY_CHECK_INTERVAL: /readyチェック間隔 (秒, 0で無効)
     """
 
     API_HOST: str = "127.0.0.1"
@@ -194,6 +196,9 @@ class WatchdogSettings(BaseSettings):
     WATCHDOG_BACKOFF_MAX: float = Field(default=1800.0, ge=300.0, le=7200.0)
     WATCHDOG_API_STARTUP_TIMEOUT: int = Field(default=15, ge=5, le=60)
     WATCHDOG_API_STARTUP_CHECK_INTERVAL: float = Field(default=1.0, ge=0.5, le=5.0)
+    WATCHDOG_READY_CHECK_INTERVAL: float = Field(
+        default=60.0, ge=0.0, le=300.0
+    )  # 0で無効
 
     model_config = SettingsConfigDict(
         env_file=".env",

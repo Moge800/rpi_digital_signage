@@ -61,6 +61,7 @@ class PLCService:
 
         # タイムアウト設定
         self._fetch_timeout = self._settings.PLC_FETCH_TIMEOUT
+        self._ping_timeout = self._settings.PLC_PING_TIMEOUT
         self._failure_limit = self._settings.PLC_FETCH_FAILURE_LIMIT
 
         # 連続失敗カウンタ
@@ -155,6 +156,7 @@ class PLCService:
 
         SM400は「常時ON」の特殊リレー。
         1ビット読み取りで通信の死活確認ができる。
+        タイムアウト付きで実行し、詰まりを防止。
 
         Returns:
             bool: SM400が読めて値が1ならTrue
@@ -167,16 +169,25 @@ class PLCService:
         if self._client is None:
             return False
 
-        try:
-            # SM400 (常時ON) を1ビット読み取り
-            # batchread_bitunits(headdevice, readsize) -> List[int]
+        def _read_sm400() -> bool:
+            """SM400を読み取る内部関数"""
             result = self._client.batchread_bitunits("SM400", 1)
-            if result and result[0] == 1:
+            return bool(result and result[0] == 1)
+
+        try:
+            # タイムアウト付きで実行 (ping用の短いタイムアウト)
+            result = self._execute_with_timeout_no_failure(
+                _read_sm400, "ping_plc", timeout=self._ping_timeout
+            )
+            if result:
                 logger.debug("PLC ping OK (SM400=1)")
                 return True
             else:
-                logger.warning(f"PLC ping failed: SM400={result}")
+                logger.warning("PLC ping failed: SM400!=1")
                 return False
+        except PLCCommunicationTimeoutError:
+            logger.warning(f"PLC ping timeout ({self._ping_timeout}s)")
+            return False
         except Exception as e:
             logger.warning(f"PLC ping failed: {e}")
             return False
@@ -231,6 +242,65 @@ class PLCService:
                 f"PLC communication error: {operation_name} " f"({elapsed:.3f}s): {e}"
             )
             self._handle_failure()
+            raise
+
+    def _execute_with_timeout_no_failure(
+        self,
+        func: Callable[..., Any],
+        operation_name: str,
+        timeout: float | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        """PLC通信をタイムアウト付きで実行 (失敗カウントに影響しない)
+
+        ping_plc など、失敗しても連続失敗カウンタに影響させたくない場合に使用。
+
+        Args:
+            func: 実行する関数
+            operation_name: 操作名 (ログ出力用)
+            timeout: タイムアウト秒数 (Noneの場合は _fetch_timeout)
+            *args: 関数の位置引数
+            **kwargs: 関数のキーワード引数
+
+        Returns:
+            関数の戻り値
+
+        Raises:
+            PLCCommunicationTimeoutError: タイムアウト時
+        """
+        actual_timeout = timeout if timeout is not None else self._fetch_timeout
+        start_time = time.perf_counter()
+        logger.debug(f"PLC communication started: {operation_name}")
+
+        try:
+            future = self._executor.submit(func, *args, **kwargs)
+            result = future.result(timeout=actual_timeout)
+
+            elapsed = time.perf_counter() - start_time
+            logger.debug(
+                f"PLC communication completed: {operation_name} ({elapsed:.3f}s)"
+            )
+            # Note: 失敗カウンタはリセットしない (影響を与えない)
+            return result
+
+        except FuturesTimeoutError:
+            elapsed = time.perf_counter() - start_time
+            logger.warning(
+                f"PLC communication timeout: {operation_name} "
+                f"(elapsed={elapsed:.3f}s, limit={actual_timeout}s)"
+            )
+            # Note: 失敗カウンタに影響しない
+            raise PLCCommunicationTimeoutError(
+                f"{operation_name} timed out after {actual_timeout}s"
+            )
+
+        except Exception as e:
+            elapsed = time.perf_counter() - start_time
+            logger.warning(
+                f"PLC communication error: {operation_name} ({elapsed:.3f}s): {e}"
+            )
+            # Note: 失敗カウンタに影響しない
             raise
 
     def _handle_failure(self) -> None:

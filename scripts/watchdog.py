@@ -69,11 +69,13 @@ class APIWatchdog:
         self._api_startup_check_interval = (
             self._settings.WATCHDOG_API_STARTUP_CHECK_INTERVAL
         )
+        self._ready_check_interval = self._settings.WATCHDOG_READY_CHECK_INTERVAL
 
         # API接続情報
         self._api_host = self._settings.API_HOST
         self._api_port = self._settings.API_PORT
         self._health_url = f"http://{self._api_host}:{self._api_port}/health"
+        self._ready_url = f"http://{self._api_host}:{self._api_port}/ready"
 
         # 状態管理
         self._consecutive_failures = 0
@@ -82,6 +84,9 @@ class APIWatchdog:
         )
         self._last_restart_monotonic: float | None = (
             None  # 最後に再起動した時刻 (monotonic)
+        )
+        self._last_ready_check_monotonic: float | None = (
+            None  # 最後に/readyをチェックした時刻 (monotonic)
         )
         self._restart_count = 0  # 連続再起動回数（成功でリセット）
         self._last_api_pid: int | None = None  # /healthから取得したPID（ワーカーPID等）
@@ -97,7 +102,8 @@ class APIWatchdog:
             f"failure_limit={self._failure_limit}, "
             f"initial_cooldown={self._initial_cooldown}s, "
             f"backoff_max={self._backoff_max}s, "
-            f"api_startup_timeout={self._api_startup_timeout}s)"
+            f"api_startup_timeout={self._api_startup_timeout}s, "
+            f"ready_check_interval={self._ready_check_interval}s)"
         )
 
     def _get_http_client(self) -> httpx.Client:
@@ -147,6 +153,7 @@ class APIWatchdog:
             time.sleep(self._check_interval)
             if self._running:  # シャットダウン中でなければチェック
                 self._check_health()
+                self._check_ready_if_due()
 
         # クリーンアップ
         self._close_http_client()
@@ -201,6 +208,59 @@ class APIWatchdog:
             # JSON decode error や予期しないエラーでもWatchdog自身は死なない
             logger.warning(f"Health check failed (unexpected error): {e}")
             self._handle_health_failure()
+
+    def _check_ready_if_due(self) -> None:
+        """/readyチェックを定期的に実行（設定間隔に基づく）
+
+        Note:
+            - /readyチェックは /health より低頻度（デフォルト60秒間隔）
+            - 失敗しても再起動トリガーにはしない（ログ警告のみ）
+            - degraded状態の早期検知とPLC接続状況の確認が目的
+        """
+        # /readyチェックが無効の場合はスキップ
+        if self._ready_check_interval <= 0:
+            return
+
+        now_monotonic = time.monotonic()
+
+        # 前回チェックからの経過時間を確認
+        if self._last_ready_check_monotonic is not None:
+            elapsed = now_monotonic - self._last_ready_check_monotonic
+            if elapsed < self._ready_check_interval:
+                return  # まだ間隔に達していない
+
+        # /readyをチェック
+        self._last_ready_check_monotonic = now_monotonic
+
+        try:
+            client = self._get_http_client()
+            response = client.get(
+                self._ready_url, timeout=5.0
+            )  # /ready用に長めのタイムアウト
+
+            if response.status_code == 200:
+                data = response.json()
+                status = data.get("status", "unknown")
+                plc_alive = data.get("plc_alive", False)
+                plc_service_ready = data.get("plc_service_ready", False)
+
+                if status == "ok":
+                    logger.debug(f"Ready check OK: {data}")
+                elif status == "degraded":
+                    # degradedは警告だが再起動トリガーにはしない
+                    logger.warning(
+                        f"API is degraded: plc_alive={plc_alive}, "
+                        f"plc_service_ready={plc_service_ready}"
+                    )
+                else:
+                    logger.warning(f"Ready check returned unexpected status: {status}")
+            else:
+                logger.warning(f"Ready check failed: status={response.status_code}")
+
+        except httpx.RequestError as e:
+            logger.warning(f"Ready check failed (request error): {e}")
+        except Exception as e:
+            logger.warning(f"Ready check failed (unexpected error): {e}")
 
     def _handle_health_failure(self) -> None:
         """ヘルスチェック失敗時の処理"""

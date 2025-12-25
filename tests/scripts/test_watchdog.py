@@ -747,3 +747,199 @@ class TestAPIWatchdogEdgeCases:
                 result = watchdog._start_api_server()
 
         assert result is False
+
+
+class TestAPIWatchdogReadyCheck:
+    """/readyチェックのテスト"""
+
+    @pytest.fixture
+    def mock_settings(self):
+        """モック設定"""
+        settings = MagicMock()
+        settings.API_HOST = "127.0.0.1"
+        settings.API_PORT = 8000
+        settings.WATCHDOG_INTERVAL = 10.0
+        settings.WATCHDOG_FAILURE_LIMIT = 3
+        settings.WATCHDOG_RESTART_COOLDOWN = 60.0
+        settings.WATCHDOG_STARTUP_GRACE = 60.0
+        settings.WATCHDOG_BACKOFF_MAX = 1800.0
+        settings.WATCHDOG_API_STARTUP_TIMEOUT = 15
+        settings.WATCHDOG_API_STARTUP_CHECK_INTERVAL = 1.0
+        settings.WATCHDOG_READY_CHECK_INTERVAL = 60.0  # 60秒間隔
+        return settings
+
+    @pytest.fixture
+    def watchdog(self, mock_settings):
+        """テスト用Watchdogインスタンス"""
+        with patch("scripts.watchdog.WatchdogSettings", return_value=mock_settings):
+            with patch("scripts.watchdog.logger"):
+                import sys
+
+                if "scripts.watchdog" in sys.modules:
+                    del sys.modules["scripts.watchdog"]
+
+                from scripts.watchdog import APIWatchdog
+
+                watchdog = APIWatchdog()
+                return watchdog
+
+    def test_ready_check_skipped_when_disabled(self):
+        """WATCHDOG_READY_CHECK_INTERVAL=0で/readyチェックがスキップされる"""
+        import sys
+
+        # 先にモジュールを削除（キャッシュクリア）
+        if "scripts.watchdog" in sys.modules:
+            del sys.modules["scripts.watchdog"]
+
+        # 無効設定用のモック
+        mock_settings = MagicMock()
+        mock_settings.API_HOST = "127.0.0.1"
+        mock_settings.API_PORT = 8000
+        mock_settings.WATCHDOG_INTERVAL = 10.0
+        mock_settings.WATCHDOG_FAILURE_LIMIT = 3
+        mock_settings.WATCHDOG_RESTART_COOLDOWN = 60.0
+        mock_settings.WATCHDOG_STARTUP_GRACE = 60.0
+        mock_settings.WATCHDOG_BACKOFF_MAX = 1800.0
+        mock_settings.WATCHDOG_API_STARTUP_TIMEOUT = 15
+        mock_settings.WATCHDOG_API_STARTUP_CHECK_INTERVAL = 1.0
+        mock_settings.WATCHDOG_READY_CHECK_INTERVAL = 0.0  # 無効
+
+        with patch("config.settings.WatchdogSettings", return_value=mock_settings):
+            with patch("scripts.watchdog.logger"):
+                from scripts.watchdog import APIWatchdog
+
+                watchdog = APIWatchdog()
+
+                # 内部変数が正しく設定されているか確認
+                assert watchdog._ready_check_interval == 0.0
+
+                watchdog._http_client = MagicMock()
+
+                with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+                    watchdog._check_ready_if_due()
+
+                # HTTPリクエストは発生しない
+                watchdog._http_client.get.assert_not_called()
+
+    def test_ready_check_skipped_before_interval(self, watchdog):
+        """/readyチェックは間隔に達するまでスキップ"""
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            # 前回チェック時刻を設定（30秒前）
+            watchdog._last_ready_check_monotonic = 970.0
+
+        watchdog._http_client = MagicMock()
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            watchdog._check_ready_if_due()
+
+        # 60秒間隔に達していないのでリクエストなし
+        watchdog._http_client.get.assert_not_called()
+
+    def test_ready_check_executed_after_interval(self, watchdog):
+        """/readyチェックは間隔後に実行"""
+        watchdog._last_ready_check_monotonic = 900.0  # 100秒前
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "ok",
+            "plc_alive": True,
+            "plc_service_ready": True,
+        }
+        watchdog._http_client = MagicMock()
+        watchdog._http_client.get.return_value = mock_response
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            watchdog._check_ready_if_due()
+
+        # リクエストが実行される
+        watchdog._http_client.get.assert_called_once()
+        call_args = watchdog._http_client.get.call_args
+        assert "/ready" in call_args[0][0]
+
+    def test_ready_check_first_time(self, watchdog):
+        """初回/readyチェックは即実行"""
+        watchdog._last_ready_check_monotonic = None  # 初回
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "ok"}
+        watchdog._http_client = MagicMock()
+        watchdog._http_client.get.return_value = mock_response
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            watchdog._check_ready_if_due()
+
+        # リクエストが実行される
+        watchdog._http_client.get.assert_called_once()
+
+    def test_ready_check_degraded_logged_as_warning(self, watchdog):
+        """degraded状態は警告ログ出力"""
+        watchdog._last_ready_check_monotonic = None
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "degraded",
+            "plc_alive": False,
+            "plc_service_ready": True,
+        }
+        watchdog._http_client = MagicMock()
+        watchdog._http_client.get.return_value = mock_response
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            with patch("scripts.watchdog.logger") as mock_logger:
+                watchdog._check_ready_if_due()
+
+        # 警告ログが出力される
+        mock_logger.warning.assert_called()
+        # 再起動はトリガーされない（failure countは増えない）
+        assert watchdog._consecutive_failures == 0
+
+    def test_ready_check_failure_does_not_increment_failures(self, watchdog):
+        """/readyチェック失敗は再起動トリガーにならない"""
+        watchdog._last_ready_check_monotonic = None
+        watchdog._consecutive_failures = 0
+
+        watchdog._http_client = MagicMock()
+        watchdog._http_client.get.side_effect = Exception("connection refused")
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            with patch("scripts.watchdog.logger"):
+                watchdog._check_ready_if_due()
+
+        # 失敗カウントは増えない
+        assert watchdog._consecutive_failures == 0
+
+    def test_ready_check_updates_last_check_time(self, watchdog):
+        """チェック後にlast_ready_check_monotonicが更新"""
+        watchdog._last_ready_check_monotonic = None
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "ok"}
+        watchdog._http_client = MagicMock()
+        watchdog._http_client.get.return_value = mock_response
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1234.5):
+            watchdog._check_ready_if_due()
+
+        assert watchdog._last_ready_check_monotonic == 1234.5
+
+    def test_ready_check_non_200_response(self, watchdog):
+        """/readyが非200を返した場合は警告ログのみ"""
+        watchdog._last_ready_check_monotonic = None
+        watchdog._consecutive_failures = 0
+
+        mock_response = MagicMock()
+        mock_response.status_code = 503
+        watchdog._http_client = MagicMock()
+        watchdog._http_client.get.return_value = mock_response
+
+        with patch("scripts.watchdog.time.monotonic", return_value=1000.0):
+            with patch("scripts.watchdog.logger") as mock_logger:
+                watchdog._check_ready_if_due()
+
+        mock_logger.warning.assert_called()
+        # 失敗カウントは増えない
+        assert watchdog._consecutive_failures == 0
