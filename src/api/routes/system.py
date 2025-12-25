@@ -2,6 +2,7 @@
 
 /api/system/sync-time - PLC時刻同期
 /api/shutdown         - 安全なシャットダウン
+/api/restart          - 緊急再起動 (要許可設定)
 """
 
 import os
@@ -12,8 +13,12 @@ from pydantic import BaseModel
 from api.services.plc_service import plc_service
 from backend.system_utils import set_system_clock
 from backend.logging import api_logger as logger
+from config.settings import Settings
 
 router = APIRouter()
+
+# 設定読み込み
+_settings = Settings()
 
 
 class SyncTimeResponse(BaseModel):
@@ -106,4 +111,59 @@ async def shutdown_server() -> ShutdownResponse:
     return ShutdownResponse(
         status="shutting_down",
         message="シャットダウンを開始しました。PLCとの接続を安全に切断しました。",
+    )
+
+
+class RestartResponse(BaseModel):
+    """再起動レスポンス"""
+
+    status: str
+    message: str
+
+
+@router.post("/restart", response_model=RestartResponse)
+async def restart_server() -> RestartResponse:
+    """APIサーバーを再起動 (緊急用)
+
+    .env の ALLOW_FRONTEND_RESTART=true の場合のみ有効。
+    Watchdogに再起動を委ねるため、SIGTERMを送信してプロセスを終了する。
+
+    Returns:
+        RestartResponse: 再起動開始通知
+
+    Raises:
+        HTTPException: 再起動が許可されていない場合 (403)
+
+    Note:
+        - 通常はWatchdogによる自動復旧を使用
+        - このエンドポイントは緊急用
+    """
+    if not _settings.ALLOW_FRONTEND_RESTART:
+        logger.warning("Restart request denied: ALLOW_FRONTEND_RESTART=false")
+        raise HTTPException(
+            status_code=403,
+            detail="再起動は許可されていません (ALLOW_FRONTEND_RESTART=false)",
+        )
+
+    logger.info("Restart requested via API (emergency)")
+
+    # PLCとの接続を安全に切断
+    plc_service.shutdown()
+
+    # 自分自身にSIGTERMを送信 (Watchdogが再起動を担当)
+    import asyncio
+
+    async def delayed_restart() -> None:
+        try:
+            await asyncio.sleep(0.5)  # レスポンス送信を待つ
+            logger.info("Sending SIGTERM to self for restart...")
+            os.kill(os.getpid(), signal.SIGTERM)
+        except Exception as e:
+            logger.error(f"Error during delayed restart: {e}")
+
+    asyncio.create_task(delayed_restart())
+
+    return RestartResponse(
+        status="restarting",
+        message="再起動を開始しました。Watchdogによる復旧をお待ちください。",
     )

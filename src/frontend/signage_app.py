@@ -103,26 +103,21 @@ def get_production_data() -> ProductionData:
 
     Returns:
         ProductionData: 生産データ (計画/実績/アラーム等)
-            エラー時はalarm=True、alarm_msgにエラー内容を設定
+            - 正常時: APIから取得したデータ
+            - タイムアウト/エラー時: キャッシュされた前回値 (フェイルセーフ)
+            - 前回値もない場合: エラー状態のProductionData
 
     Note:
         この関数はStreamlitの自動リフレッシュサイクルごとに
         呼び出される (REFRESH_INTERVAL秒ごと)。
-        全ての例外をキャッチしてホワイトアウトを防止。
+        fetch_production_from_api() 内でフェイルセーフ処理が行われるため、
+        ここでは例外を再スローしない。
     """
     try:
+        # api_client.py内でフェイルセーフ処理済み
         return fetch_production_from_api()
-    except httpx.HTTPStatusError as e:
-        logger.error(f"API error: {e}")
-        error_data = ProductionData.error()
-        error_data.alarm_msg = f"APIエラー: {e.response.status_code}"
-        return error_data
-    except httpx.RequestError as e:
-        logger.error(f"API connection error: {e}")
-        error_data = ProductionData.error()
-        error_data.alarm_msg = "APIサーバー接続エラー"
-        return error_data
     except Exception as e:
+        # 予期しない例外のみキャッチ
         logger.critical(f"Unexpected error in get_production_data: {e}")
         error_data = ProductionData.error()
         error_data.alarm_msg = f"システムエラー: {str(e)[:50]}"

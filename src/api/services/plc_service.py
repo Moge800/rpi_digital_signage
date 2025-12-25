@@ -2,10 +2,19 @@
 
 PLCClientをラップし、APIサーバー内で一元管理するシングルトンサービス。
 複数リクエストからの同時アクセスを防ぎ、安全なPLC通信を提供。
+
+タイムアウト機構:
+- PLC通信はスレッドで分離して実行
+- タイムアウト (デフォルト3秒) を超えると失敗として扱う
+- 連続失敗回数が閾値を超えるとプロセス終了
 """
 
+import os
 import random
+import signal
 import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime
 from typing import Any, Callable
 
@@ -14,11 +23,17 @@ from backend.config_helpers import get_use_plc, get_config_data
 from config.settings import Settings
 
 
+class PLCCommunicationTimeoutError(Exception):
+    """PLC通信タイムアウトエラー"""
+
+    pass
+
+
 class PLCService:
     """PLC通信サービス (シングルトン)
 
     APIサーバー内でPLC通信を一元管理。
-    スレッドセーフなアクセスを提供。
+    スレッドセーフなアクセスとタイムアウト機構を提供。
     """
 
     _instance: "PLCService | None" = None
@@ -44,12 +59,25 @@ class PLCService:
         self._last_update: datetime | None = None
         self._access_lock = threading.Lock()
 
+        # タイムアウト設定
+        self._fetch_timeout = self._settings.PLC_FETCH_TIMEOUT
+        self._failure_limit = self._settings.PLC_FETCH_FAILURE_LIMIT
+
+        # 連続失敗カウンタ
+        self._consecutive_failures = 0
+
+        # スレッドプールエグゼキュータ (PLC通信用)
+        self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="plc")
+
         # 遅延インポート用の関数参照
         self._fetch_production_data: Callable[..., Any] | None = None
         self._fetch_production_timestamp: Callable[..., datetime] | None = None
         self._get_plc_device_dict: Callable[[], dict[str, str]] | None = None
 
-        logger.info(f"PLCService initialized (USE_PLC={self._use_plc})")
+        logger.info(
+            f"PLCService initialized (USE_PLC={self._use_plc}, "
+            f"timeout={self._fetch_timeout}s, failure_limit={self._failure_limit})"
+        )
 
     def initialize(self) -> None:
         """PLC接続を初期化"""
@@ -75,6 +103,9 @@ class PLCService:
 
     def shutdown(self) -> None:
         """PLC接続を安全に切断"""
+        # スレッドプールをシャットダウン
+        self._executor.shutdown(wait=False, cancel_futures=True)
+
         # タイムアウト付きでロック取得を試みる (デッドロック防止)
         acquired = self._access_lock.acquire(timeout=5.0)
         try:
@@ -95,6 +126,90 @@ class PLCService:
                 # ロック取得できなくてもクライアント参照はクリア
                 self._client = None
 
+    def _execute_with_timeout(
+        self, func: Callable[..., Any], operation_name: str, *args: Any, **kwargs: Any
+    ) -> Any:
+        """PLC通信をタイムアウト付きで実行
+
+        Args:
+            func: 実行する関数
+            operation_name: 操作名 (ログ出力用)
+            *args: 関数の位置引数
+            **kwargs: 関数のキーワード引数
+
+        Returns:
+            関数の戻り値
+
+        Raises:
+            PLCCommunicationTimeoutError: タイムアウト時
+        """
+        start_time = time.perf_counter()
+        logger.debug(f"PLC communication started: {operation_name}")
+
+        try:
+            future = self._executor.submit(func, *args, **kwargs)
+            result = future.result(timeout=self._fetch_timeout)
+
+            elapsed = time.perf_counter() - start_time
+            logger.debug(
+                f"PLC communication completed: {operation_name} ({elapsed:.3f}s)"
+            )
+
+            # 成功したので連続失敗カウンタをリセット
+            self._consecutive_failures = 0
+            return result
+
+        except FuturesTimeoutError:
+            elapsed = time.perf_counter() - start_time
+            logger.error(
+                f"PLC communication timeout: {operation_name} "
+                f"(elapsed={elapsed:.3f}s, limit={self._fetch_timeout}s)"
+            )
+            self._handle_failure()
+            raise PLCCommunicationTimeoutError(
+                f"{operation_name} timed out after {self._fetch_timeout}s"
+            )
+
+        except Exception as e:
+            elapsed = time.perf_counter() - start_time
+            logger.error(
+                f"PLC communication error: {operation_name} " f"({elapsed:.3f}s): {e}"
+            )
+            self._handle_failure()
+            raise
+
+    def _handle_failure(self) -> None:
+        """連続失敗時の処理
+
+        連続失敗回数をインクリメントし、閾値を超えたらプロセス終了
+        """
+        self._consecutive_failures += 1
+        logger.warning(
+            f"PLC communication failure count: {self._consecutive_failures}/{self._failure_limit}"
+        )
+
+        if self._consecutive_failures >= self._failure_limit:
+            logger.critical(
+                f"PLC communication failed {self._consecutive_failures} times consecutively. "
+                "Terminating API process for watchdog recovery."
+            )
+            # Watchdog に再起動を任せるため、プロセスを自発的に終了
+            self._terminate_process()
+
+    def _terminate_process(self) -> None:
+        """プロセスを終了する
+
+        SIGTERMを送信してgracefulにシャットダウン
+        """
+        logger.info("Initiating process termination...")
+        try:
+            self.shutdown()
+        except Exception as e:
+            logger.warning(f"Error during shutdown before termination: {e}")
+
+        # SIGTERMを自分自身に送信
+        os.kill(os.getpid(), signal.SIGTERM)
+
     def get_production_data(self) -> Any:
         """生産データを取得
 
@@ -103,6 +218,7 @@ class PLCService:
 
         Note:
             USE_PLC=false の場合はダミーデータを返す
+            PLC通信はタイムアウト付きスレッドで実行
         """
         with self._access_lock:
             self._last_update = datetime.now()
@@ -112,7 +228,11 @@ class PLCService:
                     raise RuntimeError(
                         "PLCService not initialized. Call initialize() first."
                     )
-                return self._fetch_production_data(self._client)
+                return self._execute_with_timeout(
+                    self._fetch_production_data,
+                    "fetch_production_data",
+                    self._client,
+                )
             else:
                 return self._generate_dummy_data()
 
@@ -134,7 +254,12 @@ class PLCService:
             time_device = self._get_plc_device_dict()["TIME_DEVICE"]
             if not time_device:
                 return None
-            return self._fetch_production_timestamp(self._client, time_device)
+            return self._execute_with_timeout(
+                self._fetch_production_timestamp,
+                "fetch_production_timestamp",
+                self._client,
+                time_device,
+            )
 
     def get_status(self) -> dict[str, Any]:
         """サービス状態を取得
@@ -153,7 +278,12 @@ class PLCService:
             "last_update": (
                 self._last_update.isoformat() if self._last_update else None
             ),
+            "consecutive_failures": self._consecutive_failures,
         }
+
+    def reset_failure_count(self) -> None:
+        """連続失敗カウンタをリセット (テスト用)"""
+        self._consecutive_failures = 0
 
     def _generate_dummy_data(self) -> Any:
         """ダミーデータを生成 (開発/テスト用)"""

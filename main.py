@@ -5,11 +5,13 @@ FastAPI (バックエンド) + Streamlit (フロントエンド) + Kioskブラ�
 環境変数KIOSK_MODE=trueでフルスクリーンブラウザを自動起動。
 
 使い方:
-    python main.py
+    python main.py              # 通常モード（APIを直接起動）
+    python main.py --watchdog   # Watchdogモード（推奨: API監視付き）
     または
-    uv run python main.py
+    uv run python main.py --watchdog
 """
 
+import argparse
 import atexit
 import signal
 import subprocess
@@ -119,8 +121,9 @@ def start_api_server(logger: Logger) -> subprocess.Popen:
             "--port",
             str(API_PORT),
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        # stdout/stderrをPIPEにするとバッファが詰まる可能性があるためNoneに
+        stdout=None,
+        stderr=None,
     )
 
     return process
@@ -173,8 +176,9 @@ def start_streamlit(logger: Logger) -> subprocess.Popen:
             "--server.address",
             "0.0.0.0",
         ],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        # stdout/stderrをPIPEにするとバッファが詰まる可能性があるためNoneに
+        stdout=None,
+        stderr=None,
     )
 
     # Streamlitの起動を待つ
@@ -242,11 +246,151 @@ def main() -> None:
     from src.backend.logging import launcher_logger as logger
     from src.backend.config_helpers import get_kiosk_mode
 
+    # コマンドライン引数パース
+    parser = argparse.ArgumentParser(description="デジタルサイネージ起動スクリプト")
+    parser.add_argument(
+        "--watchdog",
+        action="store_true",
+        help="Watchdogモードで起動（API監視付き、推奨）",
+    )
+    args = parser.parse_args()
+
     print("=" * 50)
     print("デジタルサイネージ起動スクリプト")
-    print("(FastAPI + Streamlit 構成)")
+    if args.watchdog:
+        print("(Watchdogモード: API監視付き)")
+    else:
+        print("(FastAPI + Streamlit 構成)")
     print("=" * 50)
     print()
+
+    # Watchdogモードの場合は、APIをWatchdogに委譲
+    if args.watchdog:
+        _run_watchdog_mode(logger)
+    else:
+        _run_normal_mode(logger)
+
+
+def _run_watchdog_mode(logger: Logger) -> None:
+    """Watchdogモードで起動
+
+    APIサーバーはWatchdogが管理・監視・再起動を担当。
+    フロントエンドとブラウザは直接管理。
+    """
+    from src.backend.config_helpers import get_kiosk_mode
+
+    # 初期化フラグをクリア
+    clear_init_flags()
+
+    # Watchdogプロセス
+    watchdog_process: Optional[subprocess.Popen] = None
+    streamlit_process: Optional[subprocess.Popen] = None
+    browser_process: Optional[subprocess.Popen] = None
+
+    def cleanup() -> None:
+        """クリーンアップ"""
+        nonlocal watchdog_process, streamlit_process, browser_process
+        logger.info("シャットダウン中...")
+
+        # ブラウザ停止
+        if browser_process and browser_process.poll() is None:
+            browser_process.terminate()
+            try:
+                browser_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                browser_process.kill()
+
+        # Streamlit停止
+        if streamlit_process and streamlit_process.poll() is None:
+            streamlit_process.terminate()
+            try:
+                streamlit_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                streamlit_process.kill()
+
+        # Watchdog停止（これによりAPIも停止）
+        if watchdog_process and watchdog_process.poll() is None:
+            watchdog_process.terminate()
+            try:
+                watchdog_process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                watchdog_process.kill()
+
+        logger.info("シャットダウン完了")
+
+    def signal_handler(signum: int, frame: object) -> None:
+        cleanup()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    atexit.register(cleanup)
+
+    try:
+        # 1. Watchdog起動（APIサーバーを内部で管理）
+        logger.info("Watchdogを起動中...")
+        watchdog_process = subprocess.Popen(
+            [sys.executable, "scripts/watchdog.py"],
+            # stdout/stderrをPIPEにするとバッファが詰まる可能性があるためNoneに
+            stdout=None,
+            stderr=None,
+        )
+        logger.info(f"✓ Watchdog起動 (PID: {watchdog_process.pid})")
+
+        # Watchdogが起動してAPIを起動するのを待つ
+        if not wait_for_api_ready(logger):
+            logger.error("APIサーバーの起動に失敗しました")
+            cleanup()
+            sys.exit(1)
+
+        # 2. Streamlit起動
+        streamlit_process = start_streamlit(logger)
+
+        # 3. Kioskモード時はブラウザも起動
+        kiosk_mode = get_kiosk_mode()
+        if kiosk_mode:
+            logger.info("Kioskモード: 有効")
+            browser_process = start_kiosk_browser(logger)
+        else:
+            logger.info("Kioskモード: 無効")
+
+        print()
+        print("=" * 50)
+        print("起動完了! (Watchdogモード)")
+        print("=" * 50)
+        print()
+        print(f"  API:       http://{API_HOST}:{API_PORT}")
+        print(f"  Frontend:  http://localhost:{STREAMLIT_PORT}")
+        print(f"  Watchdog:  有効 (PID: {watchdog_process.pid})")
+        print()
+        print("Ctrl+C で終了")
+        print()
+
+        # プロセス監視ループ
+        while True:
+            # Watchdogプロセスチェック
+            if watchdog_process.poll() is not None:
+                logger.error("Watchdogが予期せず停止しました")
+                break
+
+            # Streamlitプロセスチェック
+            if streamlit_process and streamlit_process.poll() is not None:
+                logger.error("Streamlitが予期せず停止しました")
+                break
+
+            time.sleep(2)
+
+    except KeyboardInterrupt:
+        logger.info("ユーザーによる停止")
+
+    finally:
+        cleanup()
+        sys.exit(0)
+
+
+def _run_normal_mode(logger: Logger) -> None:
+    """通常モードで起動（従来の動作）"""
+    from src.backend.config_helpers import get_kiosk_mode
 
     # 初期化フラグをクリア
     clear_init_flags()

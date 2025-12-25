@@ -58,14 +58,32 @@ app.include_router(production.router, prefix="/api", tags=["production"])
 app.include_router(system.router, prefix="/api", tags=["system"])
 
 
+@app.get("/", tags=["root"])
+async def root() -> dict[str, str]:
+    """ルートパス
+
+    APIサーバーの情報を返す。
+    """
+    return {
+        "name": "Digital Signage API",
+        "docs": "/docs",
+        "health": "/health",
+    }
+
+
 @app.get("/health", tags=["health"])
-async def health_check() -> dict[str, str]:
+async def health_check() -> dict[str, str | int]:
     """ヘルスチェック (軽量)
 
+    PLC通信は行わず、APIプロセスの生存確認のみを行う。
+    Watchdogからの監視用エンドポイント。
+
     Returns:
-        {"status": "ok"}
+        {"status": "ok", "pid": <プロセスID>}
     """
-    return {"status": "ok"}
+    import os
+
+    return {"status": "ok", "pid": os.getpid()}
 
 
 # シャットダウンシグナルハンドラ (Linux/Raspberry Pi用)

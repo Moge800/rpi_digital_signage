@@ -79,9 +79,23 @@ echo ""
 echo -e "${YELLOW}[3/3] アプリケーション起動${NC}"
 echo ""
 
-# main.py を実行 (Pythonランチャーに処理を委譲)
-if command -v uv &> /dev/null; then
-    uv run python main.py
+# --watchdog オプションでWatchdogモード（API監視付き）起動
+# 通常モード（APIを直接管理）: --watchdog なし
+WATCHDOG_MODE="${1:-}"
+
+if [ "$WATCHDOG_MODE" = "--watchdog" ]; then
+    echo -e "${GREEN}Watchdogモードで起動します (API監視付き)${NC}"
+    if command -v uv &> /dev/null; then
+        uv run python main.py --watchdog
+    else
+        python main.py --watchdog
+    fi
 else
-    python main.py
+    echo -e "${GREEN}通常モードで起動します${NC}"
+    # main.py を実行 (Pythonランチャーに処理を委譲)
+    if command -v uv &> /dev/null; then
+        uv run python main.py
+    else
+        python main.py
+    fi
 fi

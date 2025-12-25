@@ -37,3 +37,21 @@ def project_root_path():
 def test_config_dir(project_root_path):
     """テスト用の設定ディレクトリパスを返す"""
     return project_root_path / "config" / "production_types"
+
+
+@pytest.fixture(autouse=True)
+def reset_plc_service_singleton():
+    """PLCServiceシングルトンをテストごとにリセット
+
+    テストがシングルトンを汚染して、実際の起動時に
+    テスト用の設定が残るのを防ぐ。
+    """
+    yield
+    # テスト後にリセット
+    try:
+        from api.services.plc_service import PLCService
+
+        PLCService._instance = None
+        PLCService._initialized = False
+    except ImportError:
+        pass  # インポートできない場合はスキップ

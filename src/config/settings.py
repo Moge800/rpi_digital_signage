@@ -54,6 +54,13 @@ class Settings(BaseSettings):
         KIOSK_MODE: Kioskモード (True: フルスクリーン自動起動, False: 通常モード)
         API_HOST: APIサーバーホスト (デフォルト: 127.0.0.1)
         API_PORT: APIサーバーポート (デフォルト: 8000)
+        PLC_FETCH_TIMEOUT: PLC通信タイムアウト秒数 (デフォルト: 3.0)
+        PLC_FETCH_FAILURE_LIMIT: 連続失敗でプロセス終了する回数 (デフォルト: 5)
+        ALLOW_FRONTEND_RESTART: フロントエンドからの再起動許可フラグ
+        WATCHDOG_INTERVAL: Watchdogのヘルスチェック間隔 (秒)
+        WATCHDOG_FAILURE_LIMIT: Watchdogが再起動するまでの失敗回数
+        WATCHDOG_RESTART_COOLDOWN: 再起動クールダウン時間 (秒)
+        FRONTEND_API_TIMEOUT: フロントエンドのAPI通信タイムアウト (秒)
     """
 
     PLC_IP: IPvAnyAddress
@@ -71,6 +78,21 @@ class Settings(BaseSettings):
     KIOSK_MODE: bool = False
     API_HOST: str = "127.0.0.1"
     API_PORT: int = Field(default=8000, gt=0, le=65535)
+
+    # PLC通信タイムアウト設定
+    PLC_FETCH_TIMEOUT: float = Field(default=3.0, ge=1.0, le=30.0)
+    PLC_FETCH_FAILURE_LIMIT: int = Field(default=5, ge=1, le=20)
+
+    # フロントエンドからの再起動許可
+    ALLOW_FRONTEND_RESTART: bool = False
+
+    # Watchdog設定
+    WATCHDOG_INTERVAL: float = Field(default=10.0, ge=5.0, le=60.0)
+    WATCHDOG_FAILURE_LIMIT: int = Field(default=3, ge=1, le=10)
+    WATCHDOG_RESTART_COOLDOWN: float = Field(default=1800.0, ge=60.0, le=7200.0)
+
+    # フロントエンドAPI通信設定
+    FRONTEND_API_TIMEOUT: float = Field(default=3.0, ge=1.0, le=30.0)
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -135,6 +157,51 @@ class PLCDeviceList(BaseSettings):
 
     def __init__(self: Any, **kwargs: Any) -> None:
         # .envファイルの存在チェック
+        if not os.path.exists(".env") and not kwargs:
+            raise FileNotFoundError(
+                "\n❌ .env file not found.\n"
+                "Please copy .env.example to .env and configure it:\n"
+                "  cp .env.example .env  (Linux/Mac)\n"
+                "  Copy-Item .env.example .env  (Windows)\n"
+            )
+        super().__init__(**kwargs)
+
+
+class WatchdogSettings(BaseSettings):
+    """Watchdog専用設定 (軽量)
+
+    Watchdogプロセスが必要とする最小限の設定のみを読み込む。
+    API側の設定との混在を避けるため分離。
+
+    Attributes:
+        API_HOST: APIサーバーホスト
+        API_PORT: APIサーバーポート
+        WATCHDOG_INTERVAL: ヘルスチェック間隔 (秒)
+        WATCHDOG_FAILURE_LIMIT: 再起動までの失敗回数
+        WATCHDOG_RESTART_COOLDOWN: 再起動クールダウン初期値 (秒) - バックオフの先頭値
+        WATCHDOG_STARTUP_GRACE: 起動後の猶予時間 (秒)
+        WATCHDOG_BACKOFF_MAX: バックオフ最大値 (秒)
+        WATCHDOG_API_STARTUP_TIMEOUT: API起動待機の最大秒数
+        WATCHDOG_API_STARTUP_CHECK_INTERVAL: API起動確認の間隔 (秒)
+    """
+
+    API_HOST: str = "127.0.0.1"
+    API_PORT: int = Field(default=8000, gt=0, le=65535)
+    WATCHDOG_INTERVAL: float = Field(default=10.0, ge=5.0, le=60.0)
+    WATCHDOG_FAILURE_LIMIT: int = Field(default=3, ge=1, le=10)
+    WATCHDOG_RESTART_COOLDOWN: float = Field(default=60.0, ge=30.0, le=300.0)
+    WATCHDOG_STARTUP_GRACE: float = Field(default=60.0, ge=30.0, le=180.0)
+    WATCHDOG_BACKOFF_MAX: float = Field(default=1800.0, ge=300.0, le=7200.0)
+    WATCHDOG_API_STARTUP_TIMEOUT: int = Field(default=15, ge=5, le=60)
+    WATCHDOG_API_STARTUP_CHECK_INTERVAL: float = Field(default=1.0, ge=0.5, le=5.0)
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    def __init__(self: Any, **kwargs: Any) -> None:
         if not os.path.exists(".env") and not kwargs:
             raise FileNotFoundError(
                 "\n❌ .env file not found.\n"

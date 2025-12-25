@@ -67,9 +67,18 @@ Write-Host ""
 Write-Host "[3/3] アプリケーション起動" -ForegroundColor Yellow
 Write-Host ""
 
+# --watchdog オプションでWatchdogモード（API監視付き）起動
+$watchdogMode = $args -contains "--watchdog"
+
 # main.py を実行 (Pythonランチャーに処理を委譲)
 try {
-    uv run python main.py
+    if ($watchdogMode) {
+        Write-Host "Watchdogモードで起動します (API監視付き)" -ForegroundColor Green
+        uv run python main.py --watchdog
+    } else {
+        Write-Host "通常モードで起動します" -ForegroundColor Green
+        uv run python main.py
+    }
 } catch {
     Write-Host "エラー: アプリケーションの起動に失敗しました" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
