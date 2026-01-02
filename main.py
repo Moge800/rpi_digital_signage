@@ -244,7 +244,6 @@ def start_kiosk_browser(
 def main() -> None:
     """メインエントリーポイント"""
     from src.backend.logging import launcher_logger as logger
-    from src.backend.config_helpers import get_kiosk_mode
 
     # コマンドライン引数パース
     parser = argparse.ArgumentParser(description="デジタルサイネージ起動スクリプト")
