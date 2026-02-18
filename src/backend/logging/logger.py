@@ -2,6 +2,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import Optional
+from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(
@@ -59,7 +60,9 @@ def setup_logger(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.FileHandler(log_file, encoding=file_encoding)
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding=file_encoding
+        )
         file_handler.setFormatter(formatter)
         file_handler.setLevel(level)
         logger.addHandler(file_handler)
