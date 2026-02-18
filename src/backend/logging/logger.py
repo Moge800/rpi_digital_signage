@@ -66,6 +66,7 @@ def setup_logger(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
+        file_handler: logging.Handler
         if file_handler_type == "rotating":
             file_handler = RotatingFileHandler(
                 log_file,
