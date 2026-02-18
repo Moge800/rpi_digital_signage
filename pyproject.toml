@@ -54,6 +54,9 @@ ignore = ["E402"]  # sys.path操作後のインポートを許可
 line-length = 88
 target-version = ["py311"]
 
+[tool.ty.environment]
+extra-paths = ["src", "scripts"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.0",
