@@ -2,7 +2,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import Optional
-from logging.handlers import RotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 
 
 def setup_logger(
@@ -11,6 +11,9 @@ def setup_logger(
     level: int = logging.DEBUG,
     console: bool = True,
     file_encoding: str = "utf-8",
+    file_handler_type: str = "rotating",
+    file_max_bytes: int = 10 * 1024 * 1024,
+    file_backup_count: int = 5,
 ) -> logging.Logger:
     """ロガーをセットアップする
 
@@ -23,6 +26,9 @@ def setup_logger(
         level: ログレベル (logging.DEBUG, INFO, WARNING, ERROR)
         console: コンソール出力するかどうか
         file_encoding: ログファイルのエンコーディング (デフォルト: utf-8)
+        file_handler_type: ファイルハンドラの種類 ("rotating" or "timed", その他はFileHandler)
+        file_max_bytes: ログファイルの最大サイズ (バイト単位, デフォルト: 10MB)
+        file_backup_count: バックアップファイルの数 (デフォルト: 5)
 
     Returns:
         logging.Logger: 設定済みのロガーインスタンス
@@ -60,9 +66,23 @@ def setup_logger(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = RotatingFileHandler(
-            log_file, maxBytes=10 * 1024 * 1024, backupCount=5, encoding=file_encoding
-        )
+        if file_handler_type == "rotating":
+            file_handler = RotatingFileHandler(
+                log_file,
+                maxBytes=file_max_bytes,
+                backupCount=file_backup_count,
+                encoding=file_encoding,
+            )
+        elif file_handler_type == "timed":
+            file_handler = TimedRotatingFileHandler(
+                log_file,
+                when="midnight",
+                interval=1,
+                backupCount=file_backup_count,
+                encoding=file_encoding,
+            )
+        else:
+            file_handler = logging.FileHandler(log_file, encoding=file_encoding)
         file_handler.setFormatter(formatter)
         file_handler.setLevel(level)
         logger.addHandler(file_handler)
