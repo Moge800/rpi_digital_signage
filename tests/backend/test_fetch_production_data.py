@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend.plc.plc_fetcher import fetch_production_data
+from backend.plc.plc_fetcher import _sanitize_production_fields, fetch_production_data
 from schemas.production import ProductionData
 
 
@@ -185,3 +185,68 @@ class TestFetchProductionData:
 
         # PLCから取得したタイムスタンプが使用される
         assert result.timestamp == datetime(2025, 11, 14, 15, 30, 45)
+
+
+class TestSanitizeProductionFields:
+    def test_clamps_negative_values(self):
+        production_type, plan, actual = _sanitize_production_fields(
+            production_type=1,
+            plan=-10,
+            actual=-3,
+        )
+        assert production_type == 1
+        assert plan == 0
+        assert actual == 0
+
+
+class TestFetchProductionDataFallback:
+    @patch("backend.plc.plc_fetcher.fetch_production_timestamp")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_msg")
+    @patch("backend.plc.plc_fetcher.fetch_alarm_flag")
+    @patch("backend.plc.plc_fetcher.fetch_in_operating")
+    @patch("backend.plc.plc_fetcher.fetch_actual")
+    @patch("backend.plc.plc_fetcher.fetch_plan")
+    @patch("backend.plc.plc_fetcher.fetch_production_type")
+    @patch("backend.plc.plc_fetcher.get_plc_device_dict")
+    @patch("backend.config_helpers.get_line_name")
+    @patch("backend.config_helpers.get_config_data")
+    def test_continues_when_config_not_found(
+        self,
+        mock_get_config,
+        mock_get_line_name,
+        mock_get_device_dict,
+        mock_fetch_type,
+        mock_fetch_plan,
+        mock_fetch_actual,
+        mock_fetch_operating,
+        mock_fetch_alarm_flag,
+        mock_fetch_alarm_msg,
+        mock_fetch_timestamp,
+    ):
+        mock_get_line_name.return_value = "TEST_LINE"
+        mock_get_config.side_effect = ValueError("unknown type")
+        mock_get_device_dict.return_value = {
+            "TIME_DEVICE": "SD210",
+            "PRODUCTION_TYPE_DEVICE": "D200",
+            "PLAN_DEVICE": "D210",
+            "ACTUAL_DEVICE": "D220",
+            "ALARM_FLAG_DEVICE": "M310",
+            "ALARM_MSG_DEVICE": "D300",
+            "IN_OPERATING_DEVICE": "M300",
+        }
+        mock_fetch_type.return_value = 99
+        mock_fetch_plan.return_value = 100
+        mock_fetch_actual.return_value = 50
+        mock_fetch_operating.return_value = True
+        mock_fetch_alarm_flag.return_value = False
+        mock_fetch_alarm_msg.return_value = ""
+        mock_fetch_timestamp.return_value = datetime(2025, 1, 12, 10, 30, 0)
+
+        mock_client = MagicMock()
+
+        result = fetch_production_data(mock_client)
+
+        assert isinstance(result, ProductionData)
+        assert result.production_name == "UNKNOWN"
+        assert result.plan == 100
+        assert result.actual == 50

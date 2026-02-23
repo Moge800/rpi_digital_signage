@@ -15,6 +15,9 @@ from schemas import ProductionData
 # PLCデバイス設定のキャッシュ（モジュールレベルで1回だけ初期化）
 _plc_device_list = PLCDeviceList()
 
+# 一時的なPLC値揺らぎ対策: 最後に有効だった機種番号を保持
+_last_valid_production_type = 0
+
 
 def _fetch_word(
     client: PLCClient,
@@ -347,6 +350,43 @@ def default_error_data() -> ProductionData:
     )
 
 
+def _sanitize_production_fields(
+    production_type: int,
+    plan: int,
+    actual: int,
+) -> tuple[int, int, int]:
+    """揺らぎや異常値を補正し、表示継続できる値に整える。
+
+    Args:
+        production_type: PLC取得の機種番号
+        plan: 計画数
+        actual: 実績数
+
+    Returns:
+        tuple[int, int, int]: 補正後 (production_type, plan, actual)
+    """
+    global _last_valid_production_type
+
+    if 0 <= production_type <= 15:
+        _last_valid_production_type = production_type
+    else:
+        logger.warning(
+            "Invalid production_type %s from PLC, using last valid value %s",
+            production_type,
+            _last_valid_production_type,
+        )
+        production_type = _last_valid_production_type
+
+    if plan < 0:
+        logger.warning("Invalid negative plan %s, clamped to 0", plan)
+        plan = 0
+    if actual < 0:
+        logger.warning("Invalid negative actual %s, clamped to 0", actual)
+        actual = 0
+
+    return production_type, plan, actual
+
+
 def fetch_production_data(client: PLCClient) -> ProductionData:
     """PLCから生産データを一括取得
 
@@ -392,40 +432,52 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
     production_type = fetch_production_type(
         client, device_dict["PRODUCTION_TYPE_DEVICE"]
     )
-
-    # production_typeの範囲チェック (0-15に制限)
-    if production_type < 0 or production_type > 15:
-        logger.warning(
-            f"Invalid production_type {production_type} from PLC, defaulting to 0"
-        )
-        production_type = 0
-
     plan = fetch_plan(client, device_dict["PLAN_DEVICE"])
     actual = fetch_actual(client, device_dict["ACTUAL_DEVICE"])
+    production_type, plan, actual = _sanitize_production_fields(
+        production_type=production_type,
+        plan=plan,
+        actual=actual,
+    )
     in_operating = fetch_in_operating(client, device_dict["IN_OPERATING_DEVICE"])
     alarm = fetch_alarm_flag(client, device_dict["ALARM_FLAG_DEVICE"])
     alarm_msg = fetch_alarm_msg(client, device_dict["ALARM_MSG_DEVICE"])
 
     # 機種設定を取得してproduction_nameを解決
+    production_name = "UNKNOWN"
+    fully = 1
     try:
         config = get_config_data(production_type)
+        production_name = config.name
+        fully = max(1, int(config.fully))
     except ValueError as e:
-        # 機種設定が見つからない場合はデフォルト値を使用
-        logger.warning(f"Config not found for production_type {production_type}: {e}")
-        return default_error_data()
+        # 機種設定が見つからなくても運用継続（全面ERROR化を避ける）
+        logger.warning(
+            "Config not found for production_type %s: %s (continuing with UNKNOWN)",
+            production_type,
+            e,
+        )
 
-    # 機種設定を使って計算
-    _remain_min = calculate_remain_minutes(plan, actual, production_type)
-    remain_min = math.ceil(_remain_min)
-    remain_pallet = calculate_remain_pallet(plan, actual, production_type)
-    fully = config.fully
+    # 機種設定を使って計算（異常値時は安全側にフォールバック）
+    try:
+        _remain_min = calculate_remain_minutes(plan, actual, production_type)
+        remain_min = max(0, math.ceil(_remain_min))
+    except Exception as e:
+        logger.warning("Failed to calculate remain_min: %s, defaulting to 0", e)
+        remain_min = 0
+
+    try:
+        remain_pallet = max(0.0, float(calculate_remain_pallet(plan, actual, production_type)))
+    except Exception as e:
+        logger.warning("Failed to calculate remain_pallet: %s, defaulting to 0", e)
+        remain_pallet = 0.0
     timestamp = fetch_production_timestamp(client, device_dict["TIME_DEVICE"])
 
     try:
         fetch_data = ProductionData(
             line_name=line_name,
             production_type=production_type,
-            production_name=config.name,
+            production_name=production_name,
             plan=plan,
             actual=actual,
             in_operating=in_operating,
