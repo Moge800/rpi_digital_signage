@@ -467,7 +467,9 @@ def fetch_production_data(client: PLCClient) -> ProductionData:
         remain_min = 0
 
     try:
-        remain_pallet = max(0.0, float(calculate_remain_pallet(plan, actual, production_type)))
+        remain_pallet = max(
+            0.0, float(calculate_remain_pallet(plan, actual, production_type))
+        )
     except Exception as e:
         logger.warning("Failed to calculate remain_pallet: %s, defaulting to 0", e)
         remain_pallet = 0.0
